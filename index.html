@@ -518,19 +518,45 @@
         const img = new Image();
         img.onload = () => { media.push({type:'img', el:img, url, thumb:url, caption:'', durCustom:null}); afterAdd(); };
         img.src = url;
-      } else if (f.type.startsWith('video/')){
+      } else if (f.type.startsWith('video/') || /\.(mov|mp4|m4v|webm)$/i.test(f.name)){
         const v = document.createElement('video');
         v.muted = true; v.playsInline = true; v.preload = 'auto';
         v.src = url;
-        v.addEventListener('loadeddata', () => {
-          const tc = document.createElement('canvas');
-          tc.width = 180; tc.height = 320;
-          const tctx = tc.getContext('2d');
-          const s = Math.max(tc.width / v.videoWidth, tc.height / v.videoHeight);
-          tctx.drawImage(v, (tc.width - v.videoWidth * s) / 2, (tc.height - v.videoHeight * s) / 2, v.videoWidth * s, v.videoHeight * s);
-          media.push({type:'video', el:v, url, dur:v.duration, thumb:tc.toDataURL('image/jpeg', .7), caption:'', durCustom:null});
+        let cargado = false;
+        setStatus('Cargando video "' + f.name + '"…');
+        const THUMB_PH = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="320"><rect width="180" height="320" fill="%231B2742"/><text x="90" y="170" font-size="48" text-anchor="middle" fill="%232DD4BF">▶</text></svg>');
+        v.addEventListener('loadedmetadata', () => {
+          cargado = true;
+          const item = {type:'video', el:v, url, dur:v.duration || 5, thumb:THUMB_PH, caption:'', durCustom:null};
+          media.push(item);
           afterAdd();
+          // generar la miniatura real cuando haya un cuadro disponible
+          const hacerThumb = () => {
+            try {
+              if (!v.videoWidth) return;
+              const tc = document.createElement('canvas');
+              tc.width = 180; tc.height = 320;
+              const tctx = tc.getContext('2d');
+              const s = Math.max(tc.width / v.videoWidth, tc.height / v.videoHeight);
+              tctx.drawImage(v, (tc.width - v.videoWidth * s) / 2, (tc.height - v.videoHeight * s) / 2, v.videoWidth * s, v.videoHeight * s);
+              item.thumb = tc.toDataURL('image/jpeg', .7);
+              renderThumbs();
+            } catch(e){}
+          };
+          if (v.readyState >= 2) hacerThumb();
+          else {
+            v.addEventListener('loadeddata', hacerThumb, {once:true});
+            v.addEventListener('seeked', hacerThumb, {once:true});
+            try { v.currentTime = 0.1; } catch(e){}
+          }
         }, {once:true});
+        v.addEventListener('error', () => {
+          if (!cargado) setStatus('No se pudo leer "' + f.name + '". Probablemente sea HEVC (.MOV del iPhone) y este navegador no lo decodifica: probá en Safari, o convertí el clip a MP4 (H.264) con CapCut o QuickTime.', 'err');
+        }, {once:true});
+        setTimeout(() => {
+          if (!cargado && !v.error) setStatus('"' + f.name + '" no carga en este navegador. Probá en Safari, o convertí el clip a MP4 (H.264).', 'err');
+        }, 10000);
+        try { v.load(); } catch(e){}
       }
     });
   }
