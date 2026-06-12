@@ -196,7 +196,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v8.2</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v8.3</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -241,6 +241,10 @@
           <option value="8">8 s</option>
           <option value="full">Video completo (solo videos)</option>
         </select>
+        <div id="trimWrap" style="display:none">
+          <label>El video arranca en el segundo: <span id="trimVal">0</span></label>
+          <input type="range" id="trim" min="0" max="10" step="0.5" value="0">
+        </div>
       </div>
     </div>
 
@@ -456,6 +460,7 @@
           </select>
         </div>
       </div>
+      <label class="check"><input type="checkbox" id="cierre" checked> Cierre final con el logo de la marca (2 s)</label>
       <div class="actions" style="margin-top:16px">
         <button class="btn btn-play" id="btnPlay" disabled>▶ Vista previa</button>
         <button class="btn btn-export" id="btnExport" disabled>⬇ Exportar video</button>
@@ -543,7 +548,7 @@
         const THUMB_PH = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="320"><rect width="180" height="320" fill="%231B2742"/><text x="90" y="170" font-size="48" text-anchor="middle" fill="%232DD4BF">▶</text></svg>');
         v.addEventListener('loadedmetadata', () => {
           cargado = true;
-          const item = {type:'video', el:v, url, dur:v.duration || 5, thumb:THUMB_PH, caption:'', durCustom:null};
+          const item = {type:'video', el:v, url, dur:v.duration || 5, thumb:THUMB_PH, caption:'', durCustom:null, startAt:0};
           media.push(item);
           afterAdd();
           // generar la miniatura real cuando haya un cuadro disponible
@@ -592,8 +597,16 @@
         selSlide = (selSlide === i) ? -1 : i;
         $('capWrap').style.display = selSlide >= 0 ? 'block' : 'none';
         if (selSlide >= 0){
-          $('capInput').value = media[selSlide].caption || '';
-          $('slideDur').value = media[selSlide].durCustom != null ? String(media[selSlide].durCustom) : '';
+          const m = media[selSlide];
+          $('capInput').value = m.caption || '';
+          $('slideDur').value = m.durCustom != null ? String(m.durCustom) : '';
+          const esVideo = m.type === 'video';
+          $('trimWrap').style.display = esVideo ? 'block' : 'none';
+          if (esVideo){
+            $('trim').max = Math.max(0, (m.dur || 5) - 1).toFixed(1);
+            $('trim').value = m.startAt || 0;
+            $('trimVal').textContent = m.startAt || 0;
+          }
         }
         renderThumbs(); drawFrameStatic();
       };
@@ -635,6 +648,28 @@
       renderThumbs(); refreshUI(); drawFrameStatic();
     }
   });
+  $('trim').addEventListener('input', () => { $('trimVal').textContent = $('trim').value; });
+  $('trim').addEventListener('change', () => {
+    if (selSlide < 0 || !media[selSlide] || media[selSlide].type !== 'video') return;
+    const m = media[selSlide];
+    m.startAt = parseFloat($('trim').value) || 0;
+    refreshUI();
+    const v = m.el;
+    const hacerThumb = () => {
+      try {
+        if (!v.videoWidth) return;
+        const tc = document.createElement('canvas');
+        tc.width = 180; tc.height = 320;
+        const x = tc.getContext('2d');
+        const s = Math.max(180 / v.videoWidth, 320 / v.videoHeight);
+        x.drawImage(v, (180 - v.videoWidth * s) / 2, (320 - v.videoHeight * s) / 2, v.videoWidth * s, v.videoHeight * s);
+        m.thumb = tc.toDataURL('image/jpeg', .7);
+        renderThumbs();
+      } catch(e){}
+    };
+    v.addEventListener('seeked', hacerThumb, {once:true});
+    try { v.currentTime = m.startAt; } catch(e){}
+  });
 
   // ---------- Marca / inputs ----------
   function setBrand(b){
@@ -658,6 +693,7 @@
   $('efectoFoto').addEventListener('change', drawFrameStatic);
   $('formato').addEventListener('change', () => { setCanvasSize(); drawFrameStatic(); });
   ['durSlide','durVideo'].forEach(id => $(id).addEventListener('change', refreshUI));
+  $('cierre').addEventListener('change', refreshUI);
 
   // ---------- Editor de diseño ----------
   const chips = $('chips');
@@ -736,6 +772,7 @@
       durSlide: $('durSlide').value, durVideo: $('durVideo').value,
       formato: $('formato').value,
       calidad: $('calidad').value,
+      cierre: $('cierre').checked,
       vol: $('vol').value
     };
   }
@@ -763,6 +800,7 @@
       if (s.durVideo) $('durVideo').value = s.durVideo;
       if (s.formato) $('formato').value = s.formato;
       if (s.calidad) $('calidad').value = s.calidad;
+      if (s.cierre != null) $('cierre').checked = s.cierre;
       setCanvasSize();
       if (s.vol != null){ $('vol').value = s.vol; $('volVal').textContent = s.vol; }
       if (s.brand) setBrand(s.brand);
@@ -980,19 +1018,23 @@
     const ok = media.length > 0;
     $('btnPlay').disabled = !ok || exporting;
     $('btnExport').disabled = !ok || exporting;
-    if (ok && !exporting) setStatus(`${media.length} elemento${media.length>1?'s':''}. Duración total: ${schedule().total.toFixed(1)} s.`);
+    if (ok && !exporting) setStatus(`${media.length} elemento${media.length>1?'s':''}. Duración total: ${totalDurAll().toFixed(1)} s.`);
   }
 
   // ---------- Tiempos ----------
   function itemDur(m){
-    if (m.durCustom != null){
-      if (m.type === 'video') return m.durCustom === 'full' ? m.dur : Math.min(m.dur, m.durCustom);
-      return m.durCustom === 'full' ? parseFloat($('durSlide').value) : m.durCustom;
+    if (m.type === 'img'){
+      if (m.durCustom != null && m.durCustom !== 'full') return m.durCustom;
+      return parseFloat($('durSlide').value);
     }
-    if (m.type === 'img') return parseFloat($('durSlide').value);
+    const base = Math.max(0.5, (m.dur || 5) - (m.startAt || 0));
+    if (m.durCustom != null) return m.durCustom === 'full' ? base : Math.min(base, m.durCustom);
     const cap = $('durVideo').value;
-    return cap === 'full' ? m.dur : Math.min(m.dur, parseFloat(cap));
+    return cap === 'full' ? base : Math.min(base, parseFloat(cap));
   }
+  const OUTRO_DUR = 2;
+  function conCierre(){ return $('cierre').checked && media.length > 0; }
+  function totalDurAll(){ return schedule().total + (conCierre() ? OUTRO_DUR : 0); }
   function schedule(){
     const starts = []; let t = 0;
     media.forEach(m => { starts.push(t); t += itemDur(m); });
@@ -1275,18 +1317,77 @@
     const v = m.el;
     if (shouldPlay && v.paused){
       // solo posicionar y arrancar una vez; sin re-seeks que congelan la imagen
-      try { v.currentTime = Math.max(0, localT); } catch(e){}
+      try { v.currentTime = Math.max(0, (m.startAt || 0) + localT); } catch(e){}
       v.play().catch(()=>{});
     }
   }
 
   function stopAllVideos(){
-    media.forEach(m => { if (m.type === 'video'){ m.el.pause(); m.el.currentTime = 0; } });
+    media.forEach(m => { if (m.type === 'video'){ m.el.pause(); try{ m.el.currentTime = m.startAt || 0; }catch(e){} } });
     lastIdx = -1;
+  }
+
+  function drawOutro(p){
+    const W = cv.width, H = cv.height;
+    // último cuadro congelado que se funde al fondo del cierre
+    if (media.length){ ctx.globalAlpha = 1; try{ drawItem(media.length - 1, 1, 0, 0); }catch(e){} }
+    const bgA = Math.min(1, p / 0.22);
+    ctx.globalAlpha = bgA;
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#F8FAFD'); g.addColorStop(1, '#EDF2F8');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = bgA * 0.14;
+    const r = ctx.createRadialGradient(W/2, H*0.45, 0, W/2, H*0.45, W*0.85);
+    r.addColorStop(0, accent()); r.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
+
+    const logo = brand === 'PORTRAVEL' ? LOGO_POR : LOGO_AME;
+    let lh = 0;
+    if (logo.complete && logo.naturalWidth){
+      const e = Math.min(1, Math.max(0, (p - 0.12) / 0.35));
+      const e2 = e * e * (3 - 2 * e);
+      ctx.globalAlpha = e2;
+      const esc = 0.85 + 0.15 * e2;
+      if (brand === 'PORTRAVEL'){
+        const lw = W * 0.55 * esc;
+        lh = lw * logo.naturalHeight / logo.naturalWidth;
+        ctx.drawImage(logo, W/2 - lw/2, H*0.44 - lh/2, lw, lh);
+      } else {
+        const lw = W * 0.32 * esc; lh = lw;
+        const x = W/2 - lw/2, y = H*0.44 - lh/2, rr = lw * 0.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + lw, y, x + lw, y + lh, rr);
+        ctx.arcTo(x + lw, y + lh, x, y + lh, rr);
+        ctx.arcTo(x, y + lh, x, y, rr);
+        ctx.arcTo(x, y, x + lw, y, rr);
+        ctx.closePath(); ctx.clip();
+        ctx.drawImage(logo, x, y, lw, lh);
+        ctx.restore();
+      }
+    }
+    const cta = $('cta').value.trim();
+    if (cta){
+      ctx.globalAlpha = Math.min(1, Math.max(0, (p - 0.4) / 0.3));
+      ctx.font = "700 50px 'Archivo',sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#13203A';
+      ctx.fillText(cta, W/2, H*0.44 + lh/2 + 110);
+    }
+    ctx.globalAlpha = 1;
+    document.querySelectorAll('#storybars i b').forEach(b => { b.style.width = '100%'; });
   }
 
   function renderAt(t, live){
     const sch = schedule();
+    const totalAll = sch.total + (conCierre() ? OUTRO_DUR : 0);
+    if (t >= totalAll) t = totalAll - 0.001;
+    if (conCierre() && t >= sch.total){
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+      drawOutro((t - sch.total) / OUTRO_DUR);
+      return;
+    }
     if (t >= sch.total) t = sch.total - 0.001;
     let i = 0;
     while (i < media.length - 1 && t >= sch.starts[i + 1]) i++;
@@ -1406,7 +1507,7 @@
     playing = true; stopAllVideos(); $('btnPlay').textContent = '⏸ Detener';
     if (previewAudio){ previewAudio.currentTime = 0; previewAudio.volume = parseInt($('vol').value) / 100; previewAudio.play().catch(()=>{}); }
     const start = performance.now();
-    const total = schedule().total;
+    const total = totalDurAll();
     const loop = now => {
       const t = (now - start) / 1000;
       if (t >= total){
@@ -1469,7 +1570,7 @@
     const done = new Promise(res => { rec.onstop = res; });
     rec.start(200);
 
-    const total = schedule().total;
+    const total = totalDurAll();
     const start = performance.now();
     await new Promise(res => {
       const loop = now => {
