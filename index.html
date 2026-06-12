@@ -196,7 +196,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v8.3</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v8.4</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -648,7 +648,28 @@
       renderThumbs(); refreshUI(); drawFrameStatic();
     }
   });
-  $('trim').addEventListener('input', () => { $('trimVal').textContent = $('trim').value; });
+  // Vista previa en vivo del punto de inicio: al mover el control,
+  // el teléfono muestra el cuadro exacto donde arranca el video.
+  let seekBusy = false, seekPendiente = null;
+  function seekPreview(m, t){
+    const v = m.el;
+    if (seekBusy){ seekPendiente = t; return; }
+    seekBusy = true;
+    const fin = () => {
+      seekBusy = false;
+      drawFrameStatic();
+      if (seekPendiente != null){ const p = seekPendiente; seekPendiente = null; seekPreview(m, p); }
+    };
+    v.addEventListener('seeked', fin, {once:true});
+    try { v.currentTime = t; } catch(e){ seekBusy = false; }
+  }
+  $('trim').addEventListener('input', () => {
+    if (selSlide < 0 || !media[selSlide] || media[selSlide].type !== 'video') return;
+    const m = media[selSlide];
+    m.startAt = parseFloat($('trim').value) || 0;
+    $('trimVal').textContent = $('trim').value;
+    seekPreview(m, m.startAt);
+  });
   $('trim').addEventListener('change', () => {
     if (selSlide < 0 || !media[selSlide] || media[selSlide].type !== 'video') return;
     const m = media[selSlide];
@@ -667,8 +688,11 @@
         renderThumbs();
       } catch(e){}
     };
-    v.addEventListener('seeked', hacerThumb, {once:true});
-    try { v.currentTime = m.startAt; } catch(e){}
+    if (Math.abs(v.currentTime - m.startAt) < 0.2 && v.readyState >= 2){ hacerThumb(); drawFrameStatic(); }
+    else {
+      v.addEventListener('seeked', () => { hacerThumb(); drawFrameStatic(); }, {once:true});
+      try { v.currentTime = m.startAt; } catch(e){}
+    }
   });
 
   // ---------- Marca / inputs ----------
