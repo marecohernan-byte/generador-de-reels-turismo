@@ -42,6 +42,10 @@
     font-size:17px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
   }
   header h1 span{color:var(--turquesa)}
+  .ver{
+    font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);
+    border-radius:99px;padding:2px 8px;margin-left:8px;vertical-align:middle;letter-spacing:.05em;
+  }
   .hint{font-size:12px;color:var(--muted)}
   main{
     display:grid;grid-template-columns:1fr 380px;gap:22px;
@@ -192,7 +196,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v8.2</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -217,7 +221,7 @@
       <h2>1 · Fotos y videos</h2>
       <div class="drop" id="drop">
         <p><strong>Tocá acá o arrastrá fotos y videos</strong><br>JPG, PNG, MP4, MOV — en el orden del reel</p>
-        <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
+        <input type="file" id="fileInput" accept="image/*,video/*,video/mp4,video/quicktime,.mp4,.mov,.m4v,.MP4,.MOV" multiple hidden>
       </div>
       <div class="thumbs" id="thumbs"></div>
       <div id="capWrap">
@@ -435,11 +439,23 @@
           </select>
         </div>
       </div>
-      <label for="formato">Formato</label>
-      <select id="formato">
-        <option value="reel" selected>Reel / Historia (9:16)</option>
-        <option value="cuadrado">Post cuadrado (1:1)</option>
-      </select>
+      <div class="row">
+        <div>
+          <label for="formato">Formato</label>
+          <select id="formato">
+            <option value="reel" selected>Reel / Historia (9:16)</option>
+            <option value="cuadrado">Post cuadrado (1:1)</option>
+          </select>
+        </div>
+        <div>
+          <label for="calidad">Calidad</label>
+          <select id="calidad">
+            <option value="1080" selected>Full HD 1080 (ideal Instagram)</option>
+            <option value="1440">2K · 1440</option>
+            <option value="2160">4K · 2160</option>
+          </select>
+        </div>
+      </div>
       <div class="actions" style="margin-top:16px">
         <button class="btn btn-play" id="btnPlay" disabled>▶ Vista previa</button>
         <button class="btn btn-export" id="btnExport" disabled>⬇ Exportar video</button>
@@ -719,6 +735,7 @@
       },
       durSlide: $('durSlide').value, durVideo: $('durVideo').value,
       formato: $('formato').value,
+      calidad: $('calidad').value,
       vol: $('vol').value
     };
   }
@@ -744,7 +761,9 @@
       }
       if (s.durSlide) $('durSlide').value = s.durSlide;
       if (s.durVideo) $('durVideo').value = s.durVideo;
-      if (s.formato){ $('formato').value = s.formato; setCanvasSize(); }
+      if (s.formato) $('formato').value = s.formato;
+      if (s.calidad) $('calidad').value = s.calidad;
+      setCanvasSize();
       if (s.vol != null){ $('vol').value = s.vol; $('volVal').textContent = s.vol; }
       if (s.brand) setBrand(s.brand);
       syncEditor(); refreshUI(); drawFrameStatic();
@@ -950,9 +969,11 @@
   cv.addEventListener('pointerup', () => { dragging = null; });
 
   function setCanvasSize(){
-    if ($('formato').value === 'cuadrado'){ cv.width = 1080; cv.height = 1080; }
-    else { cv.width = 1080; cv.height = 1920; }
+    const q = parseInt($('calidad').value);           // 1080 / 1440 / 2160 (lado corto)
+    if ($('formato').value === 'cuadrado'){ cv.width = q; cv.height = q; }
+    else { cv.width = q; cv.height = Math.round(q * 16 / 9); }
   }
+  $('calidad').addEventListener('change', () => { setCanvasSize(); drawFrameStatic(); });
   setCanvasSize();
 
   function refreshUI(){
@@ -1424,6 +1445,8 @@
     setStatus('Grabando el video en tiempo real, no cambies de pestaña…');
 
     const stream = cv.captureStream(FPS);
+    const BITRATES = { 1080: 8_000_000, 1440: 14_000_000, 2160: 28_000_000 };
+    const bitrate = BITRATES[parseInt($('calidad').value)] || 8_000_000;
 
     // Música → pista de audio en el stream
     let actx = null, srcNode = null;
@@ -1440,7 +1463,7 @@
       srcNode.start();
     }
 
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bitrate });
     const chunks = [];
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
     const done = new Promise(res => { rec.onstop = res; });
