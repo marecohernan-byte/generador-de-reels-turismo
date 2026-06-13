@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Reels">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=Archivo+Expanded:wght@700;900&family=Anton&family=Bebas+Neue&family=Playfair+Display:wght@700;900&family=Pacifico&family=Montserrat:wght@700;900&family=Dancing+Script:wght@700&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=Archivo+Expanded:wght@700;900&family=Anton&family=Bebas+Neue&family=Playfair+Display:wght@700;900&family=Pacifico&family=Montserrat:wght@700;900&family=Dancing+Script:wght@700&family=Caveat:wght@700&family=Oswald:wght@700&family=Poppins:wght@700;900&family=Raleway:wght@800&family=Lobster&family=Abril+Fatface&family=Amatic+SC:wght@700&family=Permanent+Marker&family=Satisfy&family=Righteous&family=Shadows+Into+Light&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0C1322;
@@ -203,7 +203,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v8.7</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v9.0</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -222,6 +222,11 @@
         <button class="btn-small" id="tplImport">⬆ Importar plantilla</button>
         <input type="file" id="tplFile" accept=".json" hidden>
       </div>
+      <label for="presetSelect" style="margin-top:14px">✨ Plantillas prediseñadas — Caribe y destinos top</label>
+      <select id="presetSelect">
+        <option value="">— Elegir un destino —</option>
+      </select>
+      <p class="font-note" style="margin-top:6px">Elegí el destino, subí tus fotos y solo completá el precio. Después podés retocar lo que quieras.</p>
     </div>
 
     <div class="panel">
@@ -297,7 +302,11 @@
             <input type="range" id="txSize" min="24" max="200" value="60">
           </div>
         </div>
-        <p class="font-note" style="margin-top:8px">Arrastralo sobre la vista previa para ubicarlo. Usa la tipografía elegida en el editor.</p>
+        <label>Tipografía de este texto</label>
+        <select id="txFont"></select>
+        <label>Rotación: <span id="txRotVal">0</span>°</label>
+        <input type="range" id="txRot" min="-180" max="180" value="0">
+        <p class="font-note" style="margin-top:8px">Arrastralo sobre la vista previa para ubicarlo.</p>
       </div>
       <label>Marca</label>
       <div class="brand-toggle">
@@ -331,6 +340,8 @@
               <input type="range" id="elSize" min="28" max="240" value="110">
             </div>
           </div>
+          <label>Rotación: <span id="elRotVal">0</span>°</label>
+          <input type="range" id="elRot" min="-180" max="180" value="0">
           <div class="row" id="fuenteRow">
             <div>
               <label for="fuente">Tipografía (título, precio y textos de slide)</label>
@@ -343,6 +354,16 @@
                 <option value="'Pacifico',cursive">Pacifico (manuscrita)</option>
                 <option value="'Dancing Script',cursive">Dancing Script (cursiva)</option>
                 <option value="'Caveat',cursive">Caveat (casual)</option>
+                <option value="'Oswald',sans-serif">Oswald (condensada)</option>
+                <option value="'Poppins',sans-serif">Poppins (redonda)</option>
+                <option value="'Raleway',sans-serif">Raleway (fina y moderna)</option>
+                <option value="'Lobster',cursive">Lobster (retro)</option>
+                <option value="'Abril Fatface',serif">Abril Fatface (editorial)</option>
+                <option value="'Amatic SC',cursive">Amatic SC (dibujada)</option>
+                <option value="'Permanent Marker',cursive">Permanent Marker (marcador)</option>
+                <option value="'Satisfy',cursive">Satisfy (firma)</option>
+                <option value="'Righteous',sans-serif">Righteous (deportiva)</option>
+                <option value="'Shadows Into Light',cursive">Shadows Into Light (lápiz)</option>
               </select>
             </div>
             <div id="estiloPrecioWrap">
@@ -359,7 +380,7 @@
           <div class="font-upload">
             <button class="btn-small" id="btnFont">＋ Subir mi fuente (.ttf / .otf)</button>
             <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" hidden>
-            <span class="font-note">Las letras de Canva suelen ser de Google Fonts: buscala en fonts.google.com, descargá el .ttf y subilo acá.</span>
+            <span class="font-note">Las letras de Canva suelen ser de Google Fonts: <a href="https://fonts.google.com" target="_blank" rel="noopener" style="color:var(--turquesa)">abrí fonts.google.com</a>, descargá el .ttf y subilo acá.</span>
           </div>
           <button class="btn-small" id="elCenter" style="margin-top:12px">Centrar horizontalmente</button>
         </div>
@@ -375,6 +396,8 @@
               <input type="range" id="logoAlpha" min="20" max="100" value="85">
             </div>
           </div>
+          <label>Rotación: <span id="logoRotVal">0</span>°</label>
+          <input type="range" id="logoRot" min="-180" max="180" value="0">
           <p class="font-note" style="margin-top:10px">Arrastrá el logo sobre la vista previa para reubicarlo.</p>
         </div>
 
@@ -414,6 +437,28 @@
               </select>
             </div>
           </div>
+          <div class="row">
+            <div>
+              <label for="filtro">Filtro de color (fotos y videos)</label>
+              <select id="filtro">
+                <option value="ninguno" selected>Sin filtro</option>
+                <option value="calido">Cálido (playa)</option>
+                <option value="frio">Frío</option>
+                <option value="vibrante">Vibrante</option>
+                <option value="vintage">Vintage</option>
+                <option value="bn">Blanco y negro</option>
+              </select>
+            </div>
+            <div>
+              <label for="animTexto">Animación de entrada de textos</label>
+              <select id="animTexto">
+                <option value="subir" selected>Deslizar hacia arriba</option>
+                <option value="fade">Aparecer suave</option>
+                <option value="pop">Rebote</option>
+                <option value="ninguna">Sin animación</option>
+              </select>
+            </div>
+          </div>
           <button class="btn-small" id="accentReset" style="margin-top:12px">Volver al color de la marca</button>
         </div>
       </div>
@@ -445,6 +490,8 @@
         </div>
         <label for="stickerSize" style="margin-top:4px">Tamaño</label>
         <input type="range" id="stickerSize" min="60" max="320" value="140">
+        <label>Rotación: <span id="stickerRotVal">0</span>°</label>
+        <input type="range" id="stickerRot" min="-180" max="180" value="0">
       </div>
     </div>
 
@@ -492,6 +539,9 @@
         <button class="btn btn-play" id="btnPlay" disabled>▶ Vista previa</button>
         <button class="btn btn-export" id="btnExport" disabled>⬇ Exportar video</button>
       </div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn btn-play" id="btnExport2" disabled>⬇ Exportar en ambas marcas (PORTRAVEL + AMEPORT)</button>
+      </div>
       <progress id="prog" max="100" value="0"></progress>
       <div class="status" id="status">Subí fotos o videos para empezar.</div>
     </div>
@@ -533,13 +583,14 @@
   let previewAudio = null;
 
   const els = {
-    titulo:  { x:0.5, y:0.13, size:110, color:'#FFFFFF' },
-    precio:  { x:0.5, y:0.76, size:104, color:'#FFFFFF' },
-    detalle: { x:0.5, y:0.83, size:40,  color:'#FFFFFF' },
-    cta:     { x:0.5, y:0.63, size:52,  color:'#FFFFFF' },
-    caption: { x:0.5, y:0.42, size:76,  color:'#FFFFFF' },
-    logo:    { x:0.5, y:0.95, scale:1.0, alpha:0.85 },
+    titulo:  { x:0.5, y:0.13, size:110, color:'#FFFFFF', rot:0 },
+    precio:  { x:0.5, y:0.76, size:104, color:'#FFFFFF', rot:0 },
+    detalle: { x:0.5, y:0.83, size:40,  color:'#FFFFFF', rot:0 },
+    cta:     { x:0.5, y:0.63, size:52,  color:'#FFFFFF', rot:0 },
+    caption: { x:0.5, y:0.42, size:76,  color:'#FFFFFF', rot:0 },
+    logo:    { x:0.5, y:0.95, scale:1.0, alpha:0.85, rot:0 },
   };
+  const RAD = d => (d || 0) * Math.PI / 180;
   let curEl = 'titulo';
   let hitboxes = {};
 
@@ -775,6 +826,8 @@
       $('elColor').value = els[curEl].color;
       $('elSize').value = els[curEl].size;
       $('elSizeVal').textContent = els[curEl].size;
+      $('elRot').value = els[curEl].rot || 0;
+      $('elRotVal').textContent = els[curEl].rot || 0;
       $('fuenteRow').style.display = ['titulo','precio','caption'].includes(curEl) ? 'grid' : 'none';
       $('estiloPrecioWrap').style.display = curEl === 'precio' ? 'block' : 'none';
       $('pulsoWrap').style.display = curEl === 'precio' ? 'flex' : 'none';
@@ -784,6 +837,8 @@
       $('logoSizeVal').textContent = Math.round(els.logo.scale * 100);
       $('logoAlpha').value = Math.round(els.logo.alpha * 100);
       $('logoAlphaVal').textContent = Math.round(els.logo.alpha * 100);
+      $('logoRot').value = els.logo.rot || 0;
+      $('logoRotVal').textContent = els.logo.rot || 0;
     }
   }
 
@@ -794,6 +849,16 @@
     drawFrameStatic();
   });
   $('elCenter').onclick = () => { els[curEl].x = 0.5; drawFrameStatic(); };
+  $('elRot').addEventListener('input', () => {
+    els[curEl].rot = parseInt($('elRot').value);
+    $('elRotVal').textContent = els[curEl].rot;
+    drawFrameStatic();
+  });
+  $('logoRot').addEventListener('input', () => {
+    els.logo.rot = parseInt($('logoRot').value);
+    $('logoRotVal').textContent = els.logo.rot;
+    drawFrameStatic();
+  });
 
   $('logoSize').addEventListener('input', () => {
     els.logo.scale = parseInt($('logoSize').value) / 100;
@@ -809,6 +874,8 @@
   $('accentColor').addEventListener('input', () => { accentCustom = true; drawFrameStatic(); });
   $('accentReset').onclick = () => { accentCustom = false; $('accentColor').value = BRAND_ACCENT[brand]; drawFrameStatic(); };
   $('shade').addEventListener('input', () => { $('shadeVal').textContent = $('shade').value; drawFrameStatic(); });
+  $('filtro').addEventListener('change', drawFrameStatic);
+  $('animTexto').addEventListener('change', drawFrameStatic);
 
   // ---------- Plantillas ----------
   function snapshot(){
@@ -825,6 +892,8 @@
       pulso: $('pulso').checked,
       transicion: $('transicion').value,
       efectoFoto: $('efectoFoto').value,
+      filtro: $('filtro').value,
+      animTexto: $('animTexto').value,
       textos: {
         titulo: $('titulo').value, precio: $('precio').value,
         precioAnt: $('precioAnt').value, detalle: $('detalle').value, cta: $('cta').value
@@ -855,6 +924,8 @@
       if (s.pulso != null) $('pulso').checked = s.pulso;
       if (s.transicion) $('transicion').value = s.transicion;
       if (s.efectoFoto) $('efectoFoto').value = s.efectoFoto;
+      if (s.filtro) $('filtro').value = s.filtro;
+      if (s.animTexto) $('animTexto').value = s.animTexto;
       if (s.textos){
         ['titulo','precio','precioAnt','detalle','cta'].forEach(k => { if (s.textos[k] != null) $(k).value = s.textos[k]; });
       }
@@ -932,6 +1003,78 @@
   });
   refreshTplSelect();
 
+  // ---------- Plantillas prediseñadas ----------
+  function presetBase(){
+    return {
+      els: {
+        titulo:{x:0.5,y:0.13,size:110,color:'#FFFFFF',rot:0},
+        precio:{x:0.5,y:0.76,size:104,color:'#FFFFFF',rot:0},
+        detalle:{x:0.5,y:0.83,size:40,color:'#FFFFFF',rot:0},
+        cta:{x:0.5,y:0.63,size:52,color:'#FFFFFF',rot:0},
+        caption:{x:0.5,y:0.42,size:76,color:'#FFFFFF',rot:0},
+        logo:{x:0.5,y:0.95,scale:1.0,alpha:0.85,rot:0}
+      },
+      stickers: [], txLibres: [],
+      accentCustom: true, shade: '60',
+      estiloPrecio: 'texto', pulso: true,
+      transicion: 'fundido', efectoFoto: 'kenburns',
+      filtro: 'ninguno', animTexto: 'subir',
+      textos: { precio:'', precioAnt:'', detalle:'', cta:'Consultá por DM ✈️' },
+      cierre: true
+    };
+  }
+  const PRESETS = [
+    ['Caribe','Punta Cana', p => { p.textos.titulo='PUNTA CANA'; p.fuente="'Anton',sans-serif"; p.accent='#2DD4BF'; p.filtro='calido'; p.textos.detalle='7 noches · All Inclusive';
+      p.stickers=[{emoji:'🌴',x:.1,y:.22,size:150,rot:-15},{emoji:'🍹',x:.9,y:.86,size:125,rot:10}]; }],
+    ['Caribe','Cancún', p => { p.textos.titulo='CANCÚN'; p.fuente="'Bebas Neue',sans-serif"; p.accent='#FF5E8A'; p.filtro='vibrante'; p.transicion='deslizar'; p.textos.detalle='Todo incluido frente al mar';
+      p.stickers=[{emoji:'🔥',x:.88,y:.2,size:120,rot:12},{emoji:'🌊',x:.1,y:.85,size:120,rot:-8}];
+      p.txLibres=[{text:'OFERTA',x:.82,y:.07,size:52,color:'#FFFFFF',rot:10,font:"'Permanent Marker',cursive"}]; }],
+    ['Caribe','Isla Saona', p => { p.textos.titulo='Isla Saona'; p.fuente="'Satisfy',cursive"; p.els.titulo.size=135; p.accent='#F4D58D'; p.filtro='calido'; p.shade='50'; p.textos.detalle='Excursión todo el día';
+      p.stickers=[{emoji:'🏝️',x:.12,y:.2,size:140,rot:-10},{emoji:'⭐',x:.88,y:.12,size:90,rot:15}]; }],
+    ['Caribe','Riviera Maya', p => { p.textos.titulo='RIVIERA MAYA'; p.fuente="'Montserrat',sans-serif"; p.accent='#10B981'; p.filtro='vintage'; p.textos.detalle='Cenotes, ruinas y playa';
+      p.stickers=[{emoji:'🐠',x:.12,y:.84,size:120,rot:-12},{emoji:'🤿',x:.88,y:.22,size:115,rot:10}]; }],
+    ['Caribe','Aruba', p => { p.textos.titulo='ARUBA'; p.fuente="'Poppins',sans-serif"; p.accent='#38BDF8'; p.filtro='vibrante'; p.transicion='deslizar'; p.textos.detalle='La isla feliz';
+      p.stickers=[{emoji:'☀️',x:.88,y:.18,size:130,rot:0},{emoji:'🌊',x:.12,y:.86,size:120,rot:-8}]; }],
+    ['Caribe','Jamaica', p => { p.textos.titulo='JAMAICA'; p.fuente="'Righteous',sans-serif"; p.accent='#FACC15'; p.filtro='calido'; p.transicion='flash'; p.textos.detalle='Reggae, playa y relax';
+      p.stickers=[{emoji:'🥥',x:.1,y:.2,size:125,rot:-12},{emoji:'🎉',x:.9,y:.85,size:120,rot:12}]; }],
+    ['Caribe','Bahamas', p => { p.textos.titulo='BAHAMAS'; p.fuente="'Pacifico',cursive"; p.els.titulo.size=120; p.accent='#5EEAD4'; p.filtro='vibrante'; p.textos.detalle='Aguas cristalinas';
+      p.stickers=[{emoji:'🛳️',x:.85,y:.85,size:130,rot:-8},{emoji:'🐠',x:.12,y:.22,size:110,rot:10}]; }],
+    ['Mundo','Miami', p => { p.textos.titulo='MIAMI'; p.fuente="'Bebas Neue',sans-serif"; p.accent='#FF4FA3'; p.filtro='vibrante'; p.transicion='flash'; p.textos.detalle='Shopping, playa y noche';
+      p.stickers=[{emoji:'💸',x:.88,y:.2,size:115,rot:12},{emoji:'🔥',x:.12,y:.85,size:115,rot:-10}]; }],
+    ['Mundo','Nueva York', p => { p.textos.titulo='NUEVA YORK'; p.fuente="'Oswald',sans-serif"; p.accent='#EAB308'; p.transicion='corte'; p.animTexto='pop'; p.textos.detalle='La ciudad que nunca duerme';
+      p.stickers=[{emoji:'⭐',x:.88,y:.16,size:100,rot:15},{emoji:'💯',x:.12,y:.86,size:105,rot:-10}]; }],
+    ['Mundo','París', p => { p.textos.titulo='París'; p.fuente="'Playfair Display',serif"; p.els.titulo.size=130; p.accent='#D4AF37'; p.filtro='vintage'; p.animTexto='fade'; p.shade='55'; p.textos.detalle='La ciudad del amor';
+      p.stickers=[{emoji:'❤️',x:.86,y:.18,size:105,rot:12}]; }],
+    ['Mundo','Roma', p => { p.textos.titulo='ROMA'; p.fuente="'Abril Fatface',serif"; p.accent='#C2410C'; p.filtro='calido'; p.animTexto='fade'; p.textos.detalle='Historia en cada esquina';
+      p.stickers=[{emoji:'📍',x:.86,y:.16,size:100,rot:8},{emoji:'❤️',x:.12,y:.86,size:100,rot:-10}]; }],
+    ['Mundo','Madrid', p => { p.textos.titulo='MADRID'; p.fuente="'Montserrat',sans-serif"; p.accent='#DC2626'; p.textos.detalle='Vuelos directos';
+      p.stickers=[{emoji:'📍',x:.88,y:.18,size:100,rot:10},{emoji:'🔥',x:.12,y:.86,size:105,rot:-8}]; }],
+    ['Mundo','Orlando · Disney', p => { p.textos.titulo='ORLANDO'; p.fuente="'Poppins',sans-serif"; p.accent='#8B5CF6'; p.filtro='vibrante'; p.animTexto='pop'; p.textos.detalle='Parques + hotel + vuelos';
+      p.stickers=[{emoji:'🎉',x:.12,y:.2,size:120,rot:-12},{emoji:'⭐',x:.88,y:.14,size:100,rot:15}];
+      p.txLibres=[{text:'¡En familia!',x:.5,y:.55,size:58,color:'#FFFFFF',rot:-6,font:"'Caveat',cursive"}]; }],
+    ['Mundo','Río de Janeiro', p => { p.textos.titulo='RÍO DE JANEIRO'; p.fuente="'Righteous',sans-serif"; p.accent='#22C55E'; p.filtro='vibrante'; p.transicion='deslizar'; p.textos.detalle='Playa, samba y Cristo';
+      p.stickers=[{emoji:'🌴',x:.1,y:.22,size:130,rot:-15},{emoji:'🎉',x:.9,y:.85,size:120,rot:10}]; }],
+  ];
+  (function llenarPresets(){
+    const sel = $('presetSelect');
+    let grupos = {};
+    PRESETS.forEach(([g, nombre], idx) => {
+      if (!grupos[g]){ grupos[g] = document.createElement('optgroup'); grupos[g].label = g === 'Caribe' ? '🏝️ Caribe' : '🌍 Destinos top del mundo'; sel.appendChild(grupos[g]); }
+      const o = document.createElement('option');
+      o.value = idx; o.textContent = nombre;
+      grupos[g].appendChild(o);
+    });
+  })();
+  $('presetSelect').addEventListener('change', () => {
+    const v = $('presetSelect').value;
+    if (v === '') return;
+    const [, nombre, fn] = PRESETS[parseInt(v)];
+    const p = presetBase();
+    fn(p);
+    applySnapshot(p);
+    setStatus('Plantilla "' + nombre + '" aplicada: subí tus fotos y completá el precio.', 'ok');
+  });
+
   // ---------- Música ----------
   $('btnMusic').onclick = () => $('musicInput').click();
   $('musicInput').addEventListener('change', async () => {
@@ -983,6 +1126,7 @@
       opt.textContent = '★ ' + f.name.replace(/\.(ttf|otf|woff2?)$/i, '');
       $('fuente').appendChild(opt);
       $('fuente').value = opt.value;
+      llenarTxFont();
       drawFrameStatic();
       setStatus('Fuente "' + f.name + '" cargada y aplicada.', 'ok');
     } catch(e){
@@ -1000,6 +1144,9 @@
     $('txColor').value = txLibres[selTx].color;
     $('txSize').value = txLibres[selTx].size;
     $('txSizeVal').textContent = txLibres[selTx].size;
+    $('txFont').value = txLibres[selTx].font || '';
+    $('txRot').value = txLibres[selTx].rot || 0;
+    $('txRotVal').textContent = txLibres[selTx].rot || 0;
   }
   $('btnAddTx').onclick = () => {
     txLibres.push({text:'Tu texto', x:0.5, y:0.32, size:60, color:'#FFFFFF'});
@@ -1019,6 +1166,24 @@
     if (selTx >= 0 && txLibres[selTx]){
       txLibres[selTx].size = parseInt($('txSize').value);
       $('txSizeVal').textContent = $('txSize').value;
+      drawFrameStatic();
+    }
+  });
+  function llenarTxFont(){
+    const sel = $('txFont');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Igual que el editor</option>';
+    [...$('fuente').options].forEach(o => sel.appendChild(o.cloneNode(true)));
+    sel.value = cur || '';
+  }
+  llenarTxFont();
+  $('txFont').addEventListener('change', () => {
+    if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].font = $('txFont').value; drawFrameStatic(); }
+  });
+  $('txRot').addEventListener('input', () => {
+    if (selTx >= 0 && txLibres[selTx]){
+      txLibres[selTx].rot = parseInt($('txRot').value);
+      $('txRotVal').textContent = $('txRot').value;
       drawFrameStatic();
     }
   });
@@ -1046,10 +1211,19 @@
     c.classList.add('show');
     $('stickerCur').textContent = stickers[selSticker].emoji;
     $('stickerSize').value = stickers[selSticker].size;
+    $('stickerRot').value = stickers[selSticker].rot || 0;
+    $('stickerRotVal').textContent = stickers[selSticker].rot || 0;
   }
   $('stickerSize').addEventListener('input', () => {
     if (selSticker >= 0 && stickers[selSticker]){
       stickers[selSticker].size = parseInt($('stickerSize').value);
+      drawFrameStatic();
+    }
+  });
+  $('stickerRot').addEventListener('input', () => {
+    if (selSticker >= 0 && stickers[selSticker]){
+      stickers[selSticker].rot = parseInt($('stickerRot').value);
+      $('stickerRotVal').textContent = $('stickerRot').value;
       drawFrameStatic();
     }
   });
@@ -1122,6 +1296,7 @@
     const ok = media.length > 0;
     $('btnPlay').disabled = !ok || exporting;
     $('btnExport').disabled = !ok || exporting;
+    $('btnExport2').disabled = !ok || exporting;
     if (ok && !exporting) setStatus(`${media.length} elemento${media.length>1?'s':''}. Duración total: ${totalDurAll().toFixed(1)} s.`);
   }
 
@@ -1187,6 +1362,21 @@
 
   function accent(){ return $('accentColor').value; }
 
+  function animA(localT, delay){
+    const estilo = $('animTexto').value;
+    if (estilo === 'ninguna' || !(playing || exporting)) return {al:1, dy:0, sc:1};
+    const p = Math.min(1, Math.max(0, (localT - delay) / 0.55));
+    const e = p * p * (3 - 2 * p);
+    if (estilo === 'fade') return {al:e, dy:0, sc:1};
+    if (estilo === 'subir') return {al:e, dy:(1 - e) * 70, sc:1};
+    if (estilo === 'pop'){
+      const c1 = 1.70158, c3 = c1 + 1;
+      const sc = p >= 1 ? 1 : 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+      return {al:Math.min(1, p * 3), dy:0, sc:Math.max(0.01, sc)};
+    }
+    return {al:1, dy:0, sc:1};
+  }
+
   function drawLogo(){
     const W = cv.width, H = cv.height;
     const logo = brand === 'PORTRAVEL' ? LOGO_POR : LOGO_AME;
@@ -1195,14 +1385,16 @@
     ctx.save();
     ctx.globalAlpha = L.alpha;
     ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 16;
+    ctx.translate(L.x * W, L.y * H);
+    ctx.rotate(RAD(L.rot));
     let lw, lh;
     if (brand === 'PORTRAVEL'){
       lw = W * 0.30 * L.scale;
       lh = lw * logo.naturalHeight / logo.naturalWidth;
-      ctx.drawImage(logo, L.x * W - lw / 2, L.y * H - lh / 2, lw, lh);
+      ctx.drawImage(logo, -lw / 2, -lh / 2, lw, lh);
     } else {
       lw = lh = W * 0.15 * L.scale;
-      const x = L.x * W - lw / 2, y = L.y * H - lh / 2, r = lw * 0.2;
+      const x = -lw / 2, y = -lh / 2, r = lw * 0.2;
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.arcTo(x + lw, y, x + lw, y + lh, r);
@@ -1218,7 +1410,7 @@
     maybeHighlight('logo');
   }
 
-  function drawPrecio(fam, tGlobal){
+  function drawPrecio(fam, tGlobal, localAnim){
     const W = cv.width, H = cv.height;
     const precio = $('precio').value.trim();
     if (!precio){ delete hitboxes.precio; delete hitboxes.detalle; return false; }
@@ -1226,7 +1418,13 @@
     const precioAnt = $('precioAnt').value.trim();
     const estilo = $('estiloPrecio').value;
     const P = els.precio;
-    const px = P.x * W, py = P.y * H;
+    const cxP = P.x * W, cyP = P.y * H;
+    ctx.save();
+    ctx.translate(cxP, cyP);
+    ctx.rotate(RAD(P.rot));
+    const anP = animA(localAnim, 0.12);
+    ctx.translate(0, anP.dy); ctx.scale(anP.sc, anP.sc); ctx.globalAlpha *= anP.al;
+    const px = 0, py = 0;
     ctx.textAlign = 'center';
 
     const pulse = $('pulso').checked && (playing || exporting) ? 1 + 0.045 * Math.sin(tGlobal * Math.PI * 3) : 1;
@@ -1241,14 +1439,14 @@
       ctx.fill();
       ctx.fillStyle = '#06231F';
       ctx.fillText(precio, px, py + size * 0.34);
-      regHit('precio', px, py, pw, ph);
+      regHit('precio', cxP, cyP, pw, ph);
     }
     else if (estilo === 'texto'){
       ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 22;
       ctx.fillStyle = P.color;
       ctx.fillText(precio, px, py + size * 0.34);
       ctx.shadowBlur = 0;
-      regHit('precio', px, py, tw + 40, size * 1.2);
+      regHit('precio', cxP, cyP, tw + 40, size * 1.2);
     }
     else if (estilo === 'contorno'){
       ctx.lineJoin = 'round';
@@ -1257,7 +1455,7 @@
       ctx.strokeText(precio, px, py + size * 0.34);
       ctx.fillStyle = P.color;
       ctx.fillText(precio, px, py + size * 0.34);
-      regHit('precio', px, py, tw + 40, size * 1.2);
+      regHit('precio', cxP, cyP, tw + 40, size * 1.2);
     }
     else if (estilo === 'oferta'){
       if (precioAnt){
@@ -1278,35 +1476,47 @@
       ctx.fillStyle = P.color;
       ctx.fillText(precio, px, py + size * 0.34);
       ctx.shadowBlur = 0;
-      regHit('precio', px, py, tw + 40, size * (precioAnt ? 2.1 : 1.2));
+      regHit('precio', cxP, cyP, tw + 40, size * (precioAnt ? 2.1 : 1.2));
     }
+    ctx.restore();
     maybeHighlight('precio');
 
     if (detalle){
       const D = els.detalle;
+      ctx.save();
+      ctx.translate(D.x * W, D.y * H);
+      ctx.rotate(RAD(D.rot));
+      const anD = animA(localAnim, 0.2);
+      ctx.translate(0, anD.dy); ctx.scale(anD.sc, anD.sc); ctx.globalAlpha *= anD.al;
       ctx.font = `600 ${D.size}px 'Archivo',sans-serif`;
       ctx.fillStyle = D.color;
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10;
-      ctx.fillText(detalle, D.x * W, D.y * H + D.size * 0.34);
+      ctx.fillText(detalle, 0, D.size * 0.34);
       ctx.shadowBlur = 0;
-      regHit('detalle', D.x * W, D.y * H, ctx.measureText(detalle).width + 40, D.size * 1.3);
+      const dW = ctx.measureText(detalle).width;
+      ctx.restore();
+      regHit('detalle', D.x * W, D.y * H, dW + 40, D.size * 1.3);
       maybeHighlight('detalle');
     } else delete hitboxes.detalle;
     return true;
   }
 
-  function drawTxLibres(){
+  function drawTxLibres(localAnim){
     const W = cv.width, H = cv.height;
     const fam = $('fuente').value;
     txHit = [];
     txLibres.forEach((t, i) => {
       if (!t.text){ txHit.push(null); return; }
       ctx.save();
-      ctx.font = `700 ${t.size}px ${fam}`;
+      ctx.translate(t.x * W, t.y * H);
+      ctx.rotate(RAD(t.rot));
+      const anX = animA(localAnim, 0.15 + i * 0.08);
+      ctx.translate(0, anX.dy); ctx.scale(anX.sc, anX.sc); ctx.globalAlpha *= anX.al;
+      ctx.font = `700 ${t.size}px ${t.font || fam}`;
       ctx.textAlign = 'center';
       ctx.fillStyle = t.color;
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 14;
-      ctx.fillText(t.text, t.x * W, t.y * H + t.size * 0.34);
+      ctx.fillText(t.text, 0, t.size * 0.34);
       ctx.shadowBlur = 0;
       const w = ctx.measureText(t.text).width + 40, h = t.size * 1.3;
       txHit.push({ x:(t.x * W - w/2)/W, y:(t.y * H - h/2)/H, w:w/W, h:h/H });
@@ -1314,27 +1524,31 @@
         ctx.strokeStyle = 'rgba(45,212,191,.9)';
         ctx.lineWidth = 4;
         ctx.setLineDash([14, 10]);
-        ctx.strokeRect(t.x * W - w/2 - 10, t.y * H - h/2 - 10, w + 20, h + 20);
+        ctx.strokeRect(-w/2 - 10, -h/2 - 10 + t.size * 0.17, w + 20, h + 20);
       }
       ctx.restore();
     });
   }
 
-  function drawStickers(){
+  function drawStickers(localAnim){
     const W = cv.width, H = cv.height;
     stickers.forEach((s, i) => {
       ctx.save();
+      ctx.translate(s.x * W, s.y * H);
+      ctx.rotate(RAD(s.rot));
+      const anS = animA(localAnim == null ? 1e9 : localAnim, 0.25 + i * 0.06);
+      ctx.translate(0, anS.dy); ctx.scale(anS.sc, anS.sc); ctx.globalAlpha *= anS.al;
       ctx.font = `${s.size}px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14;
-      ctx.fillText(s.emoji, s.x * W, s.y * H);
+      ctx.fillText(s.emoji, 0, 0);
       if (i === selSticker && !playing && !exporting){
         ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(45,212,191,.9)';
         ctx.lineWidth = 4;
         ctx.setLineDash([14, 10]);
         const r = s.size * 0.62;
-        ctx.strokeRect(s.x * W - r, s.y * H - r, r * 2, r * 2);
+        ctx.strokeRect(-r, -r, r * 2, r * 2);
       }
       ctx.restore();
     });
@@ -1347,6 +1561,12 @@
     const isLast  = slideIndex === media.length - 1;
     const fam     = $('fuente').value;
     const shade   = parseInt($('shade').value) / 100;
+    let localAnim = 1e9;
+    if ((playing || exporting) && media.length){
+      const schA = schedule();
+      const ii = Math.min(slideIndex, media.length - 1);
+      localAnim = Math.max(0, (tGlobal || 0) - schA.starts[ii]);
+    }
 
     ctx.save();
 
@@ -1361,15 +1581,22 @@
 
     if (titulo){
       const T = els.titulo;
+      ctx.save();
+      ctx.translate(T.x * W, T.y * H);
+      ctx.rotate(RAD(T.rot));
+      const anT = animA(localAnim, 0);
+      ctx.translate(0, anT.dy); ctx.scale(anT.sc, anT.sc); ctx.globalAlpha *= anT.al;
       ctx.textAlign = 'center'; ctx.fillStyle = T.color;
       ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18;
       const size = fitSize(titulo.toUpperCase(), W * 0.9, T.size, 900, fam);
       ctx.font = `900 ${size}px ${fam}`;
-      ctx.fillText(titulo.toUpperCase(), T.x * W, T.y * H + size * 0.34);
+      ctx.fillText(titulo.toUpperCase(), 0, size * 0.34);
       ctx.shadowBlur = 0;
       ctx.fillStyle = accent();
-      ctx.fillRect(T.x * W - 60, T.y * H + size * 0.34 + 26, 120, 8);
-      regHit('titulo', T.x * W, T.y * H, ctx.measureText(titulo.toUpperCase()).width + 40, size * 1.5);
+      ctx.fillRect(-60, size * 0.34 + 26, 120, 8);
+      const tW = ctx.measureText(titulo.toUpperCase()).width;
+      ctx.restore();
+      regHit('titulo', T.x * W, T.y * H, tW + 40, size * 1.5);
       maybeHighlight('titulo');
     } else delete hitboxes.titulo;
 
@@ -1378,32 +1605,46 @@
     if (cap){
       const C = els.caption;
       const size = fitSize(cap, W * 0.88, C.size, 700, fam);
+      ctx.save();
+      ctx.translate(C.x * W, C.y * H);
+      ctx.rotate(RAD(C.rot));
+      const anC = animA(localAnim, 0.05);
+      ctx.translate(0, anC.dy); ctx.scale(anC.sc, anC.sc); ctx.globalAlpha *= anC.al;
       ctx.font = `700 ${size}px ${fam}`;
       ctx.textAlign = 'center';
       ctx.fillStyle = C.color;
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 16;
-      ctx.fillText(cap, C.x * W, C.y * H + size * 0.34);
+      ctx.fillText(cap, 0, size * 0.34);
       ctx.shadowBlur = 0;
-      regHit('caption', C.x * W, C.y * H, ctx.measureText(cap).width + 40, size * 1.3);
+      const cW = ctx.measureText(cap).width;
+      ctx.restore();
+      regHit('caption', C.x * W, C.y * H, cW + 40, size * 1.3);
       maybeHighlight('caption');
     } else delete hitboxes.caption;
 
-    drawPrecio(fam, tGlobal || 0);
+    drawPrecio(fam, tGlobal || 0, localAnim);
 
     if (cta && (isLast || (!playing && !exporting && curEl === 'cta'))){
       const C = els.cta;
+      ctx.save();
+      ctx.translate(C.x * W, C.y * H);
+      ctx.rotate(RAD(C.rot));
+      const anA2 = animA(localAnim, 0.1);
+      ctx.translate(0, anA2.dy); ctx.scale(anA2.sc, anA2.sc); ctx.globalAlpha *= anA2.al;
       ctx.font = `700 ${C.size}px 'Archivo',sans-serif`;
       ctx.fillStyle = C.color; ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 12;
-      ctx.fillText(cta, C.x * W, C.y * H + C.size * 0.34);
+      ctx.fillText(cta, 0, C.size * 0.34);
       ctx.shadowBlur = 0;
-      regHit('cta', C.x * W, C.y * H, ctx.measureText(cta).width + 40, C.size * 1.3);
+      const aW = ctx.measureText(cta).width;
+      ctx.restore();
+      regHit('cta', C.x * W, C.y * H, aW + 40, C.size * 1.3);
       maybeHighlight('cta');
     } else if (!isLast) delete hitboxes.cta;
 
     drawLogo();
-    drawTxLibres();
-    drawStickers();
+    drawTxLibres(localAnim);
+    drawStickers(localAnim);
     ctx.restore();
   }
 
@@ -1433,13 +1674,32 @@
     const [px, py] = PANS[i % PANS.length];
     return [px * local, py * local];
   }
+  const FILTROS = {
+    ninguno: '',
+    calido:   'saturate(1.15) sepia(0.18) brightness(1.03)',
+    frio:     'saturate(1.1) hue-rotate(-10deg) brightness(1.02)',
+    vibrante: 'saturate(1.45) contrast(1.08)',
+    vintage:  'sepia(0.35) contrast(0.95) brightness(1.05) saturate(0.85)',
+    bn:       'grayscale(1) contrast(1.05)'
+  };
+  function aplicarFiltro(){
+    const f = FILTROS[$('filtro').value] || '';
+    if (!f) return;
+    try {
+      const prev = (ctx.filter && ctx.filter !== 'none') ? ctx.filter + ' ' : '';
+      ctx.filter = prev + f;
+    } catch(e){}
+  }
   function drawItem(i, local, offX, offY){
+    ctx.save();
+    aplicarFiltro();
     if (media[i].type === 'img'){
       const [pX, pY] = fotoPan(i, local);
       drawCover(media[i], fotoZoom(i, local), pX, pY, offX, offY);
     } else {
       drawCover(media[i], 1.0, 0, 0, offX, offY);
     }
+    ctx.restore();
   }
 
   function syncVideo(m, localT, shouldPlay){
@@ -1557,9 +1817,13 @@
     }
     else if (trans === 'zoom'){
       // el slide actual se acerca y se funde con el siguiente que llega desde lejos
+      ctx.save(); aplicarFiltro();
       drawCover(media[i], fotoZoom(i, local) + ease * 0.6, 0, 0, 0, 0);
+      ctx.restore();
       ctx.globalAlpha = ease;
+      ctx.save(); aplicarFiltro();
       drawCover(media[i + 1], 1.7 - ease * 0.66, 0, 0, 0, 0);
+      ctx.restore();
       ctx.globalAlpha = 1;
     }
     else if (trans === 'circulo'){
@@ -1700,7 +1964,7 @@
     return '';
   }
 
-  $('btnExport').onclick = async () => {
+  async function exportarVideo(){
     if (exporting || !media.length) return;
     if (playing){ cancelAnimationFrame(rafId); playing = false; $('btnPlay').textContent = '▶ Vista previa'; }
     stopSlideLoop();
@@ -1776,6 +2040,18 @@
     const conMusica = audioBuffer ? ' con música incluida' : '';
     if (esMp4) setStatus('¡Listo! Video MP4' + conMusica + ' descargado, lo podés subir directo a Instagram.', 'ok');
     else setStatus('Video' + conMusica + ' descargado en WebM. Si Instagram no lo acepta, pasalo por CapCut y queda en MP4.', 'ok');
+  }
+  $('btnExport').onclick = () => exportarVideo();
+  $('btnExport2').onclick = async () => {
+    if (exporting || !media.length) return;
+    const original = brand;
+    setStatus('Exportando las dos marcas, una a la vez…');
+    for (const b of ['PORTRAVEL', 'AMEPORT']){
+      setBrand(b);
+      await exportarVideo();
+    }
+    setBrand(original);
+    setStatus('¡Listo! Se descargaron los dos videos, uno por marca.', 'ok');
   };
 })();
 </script>
