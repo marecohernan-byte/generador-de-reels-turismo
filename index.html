@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.8</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.9</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -2014,16 +2014,49 @@
       ctx.filter = prev + f;
     } catch(e){}
   }
-  function drawItem(i, local, offX, offY){
+  // Capa de color que aproxima cada filtro (se usa en VIDEOS, donde ctx.filter no anda en Chrome)
+  const FILTRO_CAPA = {
+    calido:   { color:'rgba(255,170,60,0.16)', modo:'overlay' },
+    frio:     { color:'rgba(60,150,255,0.16)', modo:'overlay' },
+    vibrante: { color:'rgba(255,255,255,0.0)', modo:'saturation', extra:'rgba(255,80,80,0.10)' },
+    vintage:  { color:'rgba(180,140,90,0.22)', modo:'multiply' },
+    bn:       { color:'rgba(0,0,0,0)', modo:'bn' }
+  };
+  function aplicarCapaVideo(i, offX, offY, local){
+    const tipo = $('filtro').value;
+    const capa = FILTRO_CAPA[tipo];
+    if (!capa) return;
+    const W = cv.width, H = cv.height;
     ctx.save();
-    aplicarFiltro();
-    if (media[i].type === 'img'){
+    if (tipo === 'bn'){
+      // blanco y negro real para video: redibujar en escala de grises vía composición
+      ctx.globalCompositeOperation = 'saturation';
+      ctx.fillStyle = 'hsl(0,0%,50%)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.globalCompositeOperation = (capa.modo === 'multiply') ? 'multiply' : 'overlay';
+      ctx.fillStyle = capa.color;
+      ctx.fillRect(0, 0, W, H);
+      if (capa.extra){
+        ctx.globalCompositeOperation = 'soft-light';
+        ctx.fillStyle = capa.extra;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+    ctx.restore();
+  }
+  function drawItem(i, local, offX, offY){
+    const esVideo = media[i].type === 'video';
+    ctx.save();
+    if (!esVideo) aplicarFiltro();  // fotos: filtro nítido con ctx.filter
+    if (!esVideo){
       const [pX, pY] = fotoPan(i, local);
       drawCover(media[i], fotoZoom(i, local), pX, pY, offX, offY);
     } else {
       drawCover(media[i], 1.0, 0, 0, offX, offY);
     }
     ctx.restore();
+    if (esVideo) aplicarCapaVideo(i, offX, offY, local);  // videos: capa de color encima
   }
 
   function syncVideo(m, localT, shouldPlay){
