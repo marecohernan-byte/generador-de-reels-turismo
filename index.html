@@ -203,7 +203,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v9.0</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v9.1</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -258,6 +258,34 @@
           <input type="range" id="trim" min="0" max="10" step="0.5" value="0">
         </div>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2>1b · Conseguir fotos online</h2>
+      <div class="chips" id="fotoTabs">
+        <button data-t="pexels" class="active">📷 Fotos reales</button>
+        <button data-t="ia">🤖 Generar con IA</button>
+      </div>
+      <div id="tabPexels" style="margin-top:12px">
+        <label>Buscá el destino (mejor en inglés: "Punta Cana beach")</label>
+        <div class="music-row">
+          <input type="text" id="pexelsQ" placeholder="ej: Cancun beach sunset" style="flex:1;width:auto">
+          <button class="btn-small" id="pexelsGo">Buscar</button>
+        </div>
+        <label>API key de Pexels (gratis) — <a href="https://www.pexels.com/api/" target="_blank" rel="noopener" style="color:var(--turquesa)">conseguila acá</a></label>
+        <input type="text" id="pexelsKey" placeholder="Pegá tu API key una sola vez, queda guardada">
+      </div>
+      <div id="tabIA" style="display:none;margin-top:12px">
+        <label>Describí la foto que querés</label>
+        <div class="music-row">
+          <input type="text" id="iaQ" placeholder="ej: playa caribeña al atardecer con palmeras" style="flex:1;width:auto">
+          <button class="btn-small" id="iaGo">Generar</button>
+        </div>
+        <label>API key de Gemini — <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--turquesa)">conseguila acá</a></label>
+        <input type="text" id="geminiKey" placeholder="Pegá tu API key una sola vez, queda guardada">
+      </div>
+      <div class="thumbs" id="fotoResultados"></div>
+      <p class="font-note" id="fotoEstado" style="margin-top:8px"></p>
     </div>
 
     <div class="panel">
@@ -780,6 +808,106 @@
       try { v.currentTime = m.startAt; } catch(e){}
     }
   });
+
+  // ---------- Conseguir fotos online ----------
+  const FOTO_KEYS = { pexels:'portravel_pexels_key', gemini:'portravel_gemini_key' };
+  try {
+    $('pexelsKey').value = localStorage.getItem(FOTO_KEYS.pexels) || '';
+    $('geminiKey').value = localStorage.getItem(FOTO_KEYS.gemini) || '';
+  } catch(e){}
+  $('pexelsKey').addEventListener('change', () => { try{ localStorage.setItem(FOTO_KEYS.pexels, $('pexelsKey').value.trim()); }catch(e){} });
+  $('geminiKey').addEventListener('change', () => { try{ localStorage.setItem(FOTO_KEYS.gemini, $('geminiKey').value.trim()); }catch(e){} });
+
+  $('fotoTabs').querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      $('fotoTabs').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      $('tabPexels').style.display = b.dataset.t === 'pexels' ? 'block' : 'none';
+      $('tabIA').style.display = b.dataset.t === 'ia' ? 'block' : 'none';
+    };
+  });
+
+  function fotoEstado(msg, err){
+    const e = $('fotoEstado');
+    e.textContent = msg;
+    e.style.color = err ? 'var(--coral)' : 'var(--muted)';
+  }
+
+  function agregarFotoURL(fullUrl, thumbUrl){
+    fotoEstado('Cargando foto…');
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      media.push({type:'img', el:img, url:fullUrl, thumb:thumbUrl || fullUrl, caption:'', durCustom:null});
+      afterAdd();
+      fotoEstado('Foto agregada al reel ✓ Podés agregar más.');
+    };
+    img.onerror = () => fotoEstado('No se pudo cargar esa foto.', true);
+    img.src = fullUrl;
+  }
+
+  function mostrarResultados(items){
+    const cont = $('fotoResultados');
+    cont.innerHTML = '';
+    items.forEach(it => {
+      const d = document.createElement('div');
+      d.className = 'thumb';
+      d.style.cursor = 'pointer';
+      d.innerHTML = `<img src="${it.thumb}" alt="resultado">`;
+      d.onclick = () => agregarFotoURL(it.full, it.thumb);
+      cont.appendChild(d);
+    });
+  }
+
+  async function buscarPexels(){
+    const key = $('pexelsKey').value.trim();
+    const q = $('pexelsQ').value.trim();
+    if (!key){ fotoEstado('Pegá primero tu API key de Pexels (es gratis, link arriba).', true); return; }
+    if (!q){ fotoEstado('Escribí qué destino buscar.', true); return; }
+    fotoEstado('Buscando fotos…');
+    try {
+      const r = await fetch('https://api.pexels.com/v1/search?orientation=portrait&per_page=12&query=' + encodeURIComponent(q), { headers: { Authorization: key } });
+      if (!r.ok) throw new Error(r.status);
+      const data = await r.json();
+      if (!data.photos || !data.photos.length){ fotoEstado('Sin resultados. Probá con otras palabras, mejor en inglés.', true); return; }
+      mostrarResultados(data.photos.map(p => ({ thumb: p.src.medium, full: p.src.large2x || p.src.large })));
+      fotoEstado('Tocá una foto para agregarla al reel.');
+    } catch(e){ fotoEstado('Error al buscar. Revisá que la API key sea correcta.', true); }
+  }
+  $('pexelsGo').onclick = buscarPexels;
+  $('pexelsQ').addEventListener('keydown', e => { if (e.key === 'Enter') buscarPexels(); });
+
+  async function generarIA(){
+    const key = $('geminiKey').value.trim();
+    const q = $('iaQ').value.trim();
+    if (!key){ fotoEstado('Pegá primero tu API key de Gemini (link arriba).', true); return; }
+    if (!q){ fotoEstado('Describí la foto que querés generar.', true); return; }
+    fotoEstado('Generando imagen con IA… puede tardar unos segundos.');
+    try {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Genera una foto vertical 9:16, fotorrealista y luminosa, para promoción turística profesional: ' + q + '. Sin texto ni marcas de agua.' }] }],
+          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
+        })
+      });
+      const data = await r.json();
+      const partes = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+      const imgPart = partes.find(p => p.inlineData && p.inlineData.data);
+      if (!imgPart){
+        const msg = data.error && data.error.message ? data.error.message : 'La IA no devolvió imagen. Probá reformular la descripción.';
+        fotoEstado(msg, true);
+        return;
+      }
+      const dataUrl = 'data:' + (imgPart.inlineData.mimeType || 'image/png') + ';base64,' + imgPart.inlineData.data;
+      const previos = [...$('fotoResultados').children].map(d => ({ thumb: d.querySelector('img').src, full: d.querySelector('img').dataset.full || d.querySelector('img').src }));
+      mostrarResultados([{ thumb: dataUrl, full: dataUrl }].concat(previos.slice(0, 5)));
+      fotoEstado('Tocá la imagen para agregarla al reel. Podés generar otra variante.');
+    } catch(e){ fotoEstado('Error al generar. Revisá la API key de Gemini.', true); }
+  }
+  $('iaGo').onclick = generarIA;
+  $('iaQ').addEventListener('keydown', e => { if (e.key === 'Enter') generarIA(); });
 
   // ---------- Marca / inputs ----------
   function setBrand(b){
