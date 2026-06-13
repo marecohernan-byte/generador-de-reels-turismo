@@ -189,6 +189,13 @@
   }
   .storybars i b{display:block;height:100%;width:0%;background:#fff}
   .preview-note{font-size:12px;color:var(--muted);text-align:center;max-width:300px;line-height:1.5}
+  .fuente-nav{display:flex;gap:6px;align-items:stretch}
+  .fuente-nav select{flex:1}
+  .fuente-nav button{
+    width:42px;flex:none;border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:8px;cursor:pointer;font-size:18px;font-weight:700;font-family:inherit;
+  }
+  .fuente-nav button:hover{border-color:var(--turquesa);color:var(--turquesa)}
   @media (max-width:900px){
     .phone{width:min(200px,46vw)}
   }
@@ -200,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.4</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.5</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -372,8 +379,10 @@
           <input type="range" id="elRot" min="-180" max="180" value="0">
           <div class="row" id="fuenteRow">
             <div>
-              <label for="fuente">Tipografía (título, precio y textos de slide)</label>
-              <select id="fuente">
+              <label for="fuente">Tipografía — usá ◀ ▶ para verlas en vivo</label>
+              <div class="fuente-nav">
+                <button type="button" id="fuentePrev" title="Anterior">◀</button>
+                <select id="fuente">
                 <option value="'Archivo Expanded','Archivo',sans-serif" style="font-family:'Archivo',sans-serif" selected>Archivo (moderna)</option>
                 <option value="'Anton',sans-serif" style="font-family:'Anton',sans-serif">Anton (impacto)</option>
                 <option value="'Bebas Neue',sans-serif" style="font-family:'Bebas Neue',sans-serif">Bebas Neue (alta y fina)</option>
@@ -392,7 +401,9 @@
                 <option value="'Satisfy',cursive" style="font-family:'Satisfy',cursive">Satisfy (firma)</option>
                 <option value="'Righteous',sans-serif" style="font-family:'Righteous',sans-serif">Righteous (deportiva)</option>
                 <option value="'Shadows Into Light',cursive" style="font-family:'Shadows Into Light',cursive">Shadows Into Light (lápiz)</option>
-              </select>
+                </select>
+                <button type="button" id="fuenteNext" title="Siguiente">▶</button>
+              </div>
             </div>
             <div id="estiloPrecioWrap">
               <label for="estiloPrecio">Estilo del precio</label>
@@ -969,21 +980,26 @@
     asegurarFuente(fam);
     drawFrameStatic();
   }
-  // Al pasar el mouse por cada opción del desplegable, mostrar esa fuente en la preview
-  $('fuente').querySelectorAll('option').forEach(opt => {
-    opt.addEventListener('mouseenter', () => previsualizarFuente(opt.value));
-  });
-  // Si el desplegable se cierra sin elegir (mouse sale), volver a la real
-  $('fuente').addEventListener('mouseleave', () => {
-    // pequeño retraso: si fue un cambio real, 'change' ya lo fijó
-    setTimeout(() => { if (fuentePreviaReal != null) previsualizarFuente(null); }, 50);
-  });
   $('fuente').addEventListener('change', () => {
     fuentePreviaReal = null;  // la elección queda firme
     reflejarFuenteSelect();
     asegurarFuente($('fuente').value);
     drawFrameStatic();
   });
+  // Flechas para recorrer las fuentes viendo cada una en la preview
+  function moverFuente(dir){
+    const sel = $('fuente');
+    let i = sel.selectedIndex + dir;
+    if (i < 0) i = sel.options.length - 1;
+    if (i >= sel.options.length) i = 0;
+    sel.selectedIndex = i;
+    fuentePreviaReal = null;
+    reflejarFuenteSelect();
+    asegurarFuente(sel.value);
+    drawFrameStatic();
+  }
+  $('fuentePrev').onclick = () => moverFuente(-1);
+  $('fuenteNext').onclick = () => moverFuente(1);
   reflejarFuenteSelect();
   $('estiloPrecio').addEventListener('change', () => {
     $('precioAntWrap').style.display = $('estiloPrecio').value === 'oferta' ? 'block' : 'none';
