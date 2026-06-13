@@ -200,7 +200,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.2</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.3</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -619,6 +619,17 @@
     logo:    { x:0.5, y:0.95, scale:1.0, alpha:0.85, rot:0 },
   };
   const RAD = d => (d || 0) * Math.PI / 180;
+  // Peso real disponible por fuente (las que no tienen 900 usan el que sí existe)
+  function pesoDe(fam){
+    const f = (fam || '').toLowerCase();
+    if (f.includes('anton') || f.includes('bebas') || f.includes('lobster') ||
+        f.includes('abril') || f.includes('pacifico') || f.includes('permanent') ||
+        f.includes('satisfy') || f.includes('righteous') || f.includes('shadows') ||
+        f.includes('dancing') || f.includes('caveat') || f.includes('amatic')) return 400;
+    if (f.includes('oswald')) return 700;
+    if (f.includes('raleway')) return 800;
+    return 900;
+  }
   let curEl = 'titulo';
   let hitboxes = {};
 
