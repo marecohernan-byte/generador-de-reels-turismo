@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v11.1</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v11.4</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -231,6 +231,16 @@
         <option value="">— Elegir un destino —</option>
       </select>
       <p class="font-note" style="margin-top:6px">Elegí el destino, subí tus fotos y solo completá el precio. Después podés retocar lo que quieras.</p>
+
+      <label for="estructuraSelect" style="margin-top:16px">🎬 Estructura de reel completo</label>
+      <select id="estructuraSelect">
+        <option value="">— Elegir una estructura —</option>
+        <option value="oferta">Oferta directa (4 slides: portada → 2 fotos → cierre)</option>
+        <option value="itinerario">Itinerario (5 slides con nombre por foto)</option>
+        <option value="antesdespues">Antes/Después del precio (3 slides)</option>
+        <option value="testimonio">Mostrar destino + CTA fuerte (4 slides)</option>
+      </select>
+      <p class="font-note" style="margin-top:6px">La estructura arma los textos por slide y el orden. Vos solo subís las fotos en ese orden y completás precio. Se combina con el destino que elijas arriba.</p>
     </div>
 
     <div class="panel">
@@ -337,6 +347,21 @@
             <input type="range" id="txSize" min="24" max="200" value="60">
           </div>
         </div>
+        <div class="row">
+          <div>
+            <label for="txFondo">Fondo del texto</label>
+            <select id="txFondo">
+              <option value="ninguno">Sin fondo (con sombra)</option>
+              <option value="caja">Caja de color</option>
+              <option value="redondeada">Caja redondeada</option>
+              <option value="contorno">Contorno (borde)</option>
+            </select>
+          </div>
+          <div>
+            <label>Color del fondo</label>
+            <input type="color" id="txFondoColor" value="#2DD4BF">
+          </div>
+        </div>
         <label>Tipografía de este texto</label>
         <select id="txFont"></select>
         <label>Rotación: <span id="txRotVal">0</span>°</label>
@@ -383,12 +408,27 @@
         <div id="ctlTexto">
           <div class="row">
             <div>
-              <label>Color</label>
+              <label>Color del texto</label>
               <input type="color" id="elColor" value="#FFFFFF">
             </div>
             <div>
               <label>Tamaño: <span id="elSizeVal">110</span></label>
               <input type="range" id="elSize" min="28" max="240" value="110">
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="elFondo">Fondo del texto</label>
+              <select id="elFondo">
+                <option value="ninguno">Sin fondo (con sombra)</option>
+                <option value="caja">Caja de color</option>
+                <option value="redondeada">Caja redondeada</option>
+                <option value="contorno">Contorno (borde)</option>
+              </select>
+            </div>
+            <div>
+              <label>Color del fondo</label>
+              <input type="color" id="elFondoColor" value="#2DD4BF">
             </div>
           </div>
           <label>Rotación: <span id="elRotVal">0</span>°</label>
@@ -666,11 +706,11 @@
 
   const FUENTE_DEF = "'Archivo Expanded','Archivo',sans-serif";
   const els = {
-    titulo:  { x:0.5, y:0.13, size:110, color:'#FFFFFF', rot:0, font:'', anim:'auto' },
-    precio:  { x:0.5, y:0.76, size:104, color:'#FFFFFF', rot:0, font:'', anim:'auto' },
-    detalle: { x:0.5, y:0.83, size:40,  color:'#FFFFFF', rot:0, font:'', anim:'auto' },
-    cta:     { x:0.5, y:0.63, size:52,  color:'#FFFFFF', rot:0, font:'', anim:'auto' },
-    caption: { x:0.5, y:0.42, size:76,  color:'#FFFFFF', rot:0, font:'', anim:'auto' },
+    titulo:  { x:0.5, y:0.13, size:110, color:'#FFFFFF', rot:0, font:'', anim:'auto', bg:'ninguno', bgColor:'#2DD4BF' },
+    precio:  { x:0.5, y:0.76, size:104, color:'#FFFFFF', rot:0, font:'', anim:'auto', bg:'ninguno', bgColor:'#2DD4BF' },
+    detalle: { x:0.5, y:0.83, size:40,  color:'#FFFFFF', rot:0, font:'', anim:'auto', bg:'ninguno', bgColor:'#2DD4BF' },
+    cta:     { x:0.5, y:0.63, size:52,  color:'#FFFFFF', rot:0, font:'', anim:'auto', bg:'ninguno', bgColor:'#2DD4BF' },
+    caption: { x:0.5, y:0.42, size:76,  color:'#FFFFFF', rot:0, font:'', anim:'auto', bg:'ninguno', bgColor:'#2DD4BF' },
     logo:    { x:0.5, y:0.95, scale:1.0, alpha:0.85, rot:0 },
   };
   function famDe(key){ return (els[key] && els[key].font) ? els[key].font : ($('fuente').value || FUENTE_DEF); }
@@ -757,7 +797,10 @@
       }
     });
   }
-  function afterAdd(){ renderThumbs(); refreshUI(); drawFrameStatic(); }
+  function afterAdd(){
+    if (typeof estructuraPendiente !== 'undefined' && estructuraPendiente) aplicarCaptionsEstructura();
+    renderThumbs(); refreshUI(); drawFrameStatic();
+  }
 
   // ---------- Miniaturas + texto por slide ----------
   const thumbs = $('thumbs');
@@ -1087,6 +1130,8 @@
         reflejarFuenteSelect();
       }
       $('elAnim').value = els[curEl].anim || 'auto';
+      $('elFondo').value = els[curEl].bg || 'ninguno';
+      $('elFondoColor').value = els[curEl].bgColor || '#2DD4BF';
       $('fuenteRow').style.display = ['titulo','precio','detalle','cta','caption'].includes(curEl) ? 'grid' : 'none';
       $('estiloPrecioWrap').style.display = curEl === 'precio' ? 'block' : 'none';
       $('pulsoWrap').style.display = curEl === 'precio' ? 'flex' : 'none';
@@ -1116,6 +1161,14 @@
   $('elAnim').addEventListener('change', () => {
     if (els[curEl]) els[curEl].anim = $('elAnim').value;
     reproducirMuestra();
+  });
+  $('elFondo').addEventListener('change', () => {
+    if (els[curEl]) els[curEl].bg = $('elFondo').value;
+    drawFrameStatic();
+  });
+  $('elFondoColor').addEventListener('input', () => {
+    if (els[curEl]) els[curEl].bgColor = $('elFondoColor').value;
+    drawFrameStatic();
   });
   function moverAnimEl(dir){
     const sel = $('elAnim');
@@ -1353,6 +1406,64 @@
     setStatus('Plantilla "' + nombre + '" aplicada: subí tus fotos y completá el precio.', 'ok');
   });
 
+  // ---------- Estructuras de reel completo ----------
+  // Definen los textos por slide (caption) y cuántas fotos subir, sin tocar el estilo del destino.
+  const ESTRUCTURAS = {
+    oferta: {
+      nombre: 'Oferta directa',
+      fotos: 3,
+      caps: ['', 'Todo lo que incluye', '¡Lugares limitados!'],
+      cta: 'Reservá por DM ✈️',
+      cierre: true,
+      ayuda: 'Subí 3 fotos: una de portada (la mejor), una del hotel/servicios y una de la playa o atractivo.'
+    },
+    itinerario: {
+      nombre: 'Itinerario',
+      fotos: 5,
+      caps: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Último día'],
+      cta: 'Pedí el itinerario completo 📩',
+      cierre: true,
+      ayuda: 'Subí 5 fotos en orden de recorrido. Cambiá los textos "Día 1, 2..." por los lugares reales tocando cada miniatura.'
+    },
+    antesdespues: {
+      nombre: 'Antes/Después del precio',
+      fotos: 3,
+      caps: ['Imaginate acá...', 'Desde', 'Te esperamos'],
+      cta: 'Consultá disponibilidad 🗓️',
+      cierre: true,
+      ayuda: 'Subí 3 fotos: uná soñada de portada, una donde va el precio grande, y una de cierre.'
+    },
+    testimonio: {
+      nombre: 'Mostrar destino + CTA',
+      fotos: 4,
+      caps: ['', 'Vas a vivir esto', 'Y mucho más', '¿Te sumás?'],
+      cta: 'Escribinos AHORA 🔥',
+      cierre: true,
+      ayuda: 'Subí 4 fotos atractivas del destino. El CTA fuerte aparece al final.'
+    }
+  };
+  $('estructuraSelect').addEventListener('change', () => {
+    const v = $('estructuraSelect').value;
+    if (!v || !ESTRUCTURAS[v]) return;
+    const est = ESTRUCTURAS[v];
+    // aplicar CTA y cierre
+    $('cta').value = est.cta;
+    $('cierre').checked = est.cierre;
+    // guardar las captions pendientes para asignarlas a las fotos a medida que se suban
+    estructuraPendiente = est;
+    aplicarCaptionsEstructura();
+    refreshUI();
+    drawFrameStatic();
+    setStatus('Estructura "' + est.nombre + '" lista. ' + est.ayuda, 'ok');
+  });
+  let estructuraPendiente = null;
+  function aplicarCaptionsEstructura(){
+    if (!estructuraPendiente) return;
+    const caps = estructuraPendiente.caps;
+    media.forEach((m, i) => { m.caption = caps[i] || ''; });
+    if (selSlide >= 0 && media[selSlide]) $('capInput').value = media[selSlide].caption || '';
+  }
+
   // ---------- Música ----------
   $('btnMusic').onclick = () => $('musicInput').click();
   $('musicInput').addEventListener('change', async () => {
@@ -1426,6 +1537,8 @@
     $('txRot').value = txLibres[selTx].rot || 0;
     $('txRotVal').textContent = txLibres[selTx].rot || 0;
     $('txAnim').value = txLibres[selTx].anim || 'auto';
+    $('txFondo').value = txLibres[selTx].bg || 'ninguno';
+    $('txFondoColor').value = txLibres[selTx].bgColor || '#2DD4BF';
   }
   $('btnLimpiarExtras').onclick = () => {
     txLibres = []; stickers = [];
@@ -1481,6 +1594,12 @@
   $('txAnim').addEventListener('change', () => {
     if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].anim = $('txAnim').value; reproducirMuestra(); }
   });
+  $('txFondo').addEventListener('change', () => {
+    if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].bg = $('txFondo').value; drawFrameStatic(); }
+  });
+  $('txFondoColor').addEventListener('input', () => {
+    if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].bgColor = $('txFondoColor').value; drawFrameStatic(); }
+  });
   function moverAnimTx(dir){
     if (selTx < 0 || !txLibres[selTx]) return;
     const sel = $('txAnim');
@@ -1505,7 +1624,8 @@
     'Fiesta': [['🎉','fiesta celebracion'],['🎊','confeti fiesta'],['🍹','trago coctel'],['🍸','trago martini'],['🍺','cerveza'],['🥂','brindis champagne'],['🍾','champagne'],['🔥','fuego hot'],['💃','baile mujer'],['🕺','baile hombre'],['🎶','musica notas'],['🎵','musica nota'],['🎤','microfono cantar'],['🪩','bola disco'],['✨','brillo destellos'],['🎆','fuegos artificiales'],['🎇','fuegos artificiales']],
     'Hotel': [['🏨','hotel'],['🛏️','cama hotel'],['🏊','pileta nadar'],['🛁','bañera spa'],['💆','spa masaje'],['🍽️','comida plato cena'],['🥂','brindis'],['☕','cafe desayuno'],['🍳','desayuno huevo'],['🌺','flor tropical'],['🛎️','recepcion campana'],['🧖','spa sauna']],
     'Caras': [['😍','enamorado corazones'],['🥰','cariño amor'],['😎','genial lentes'],['🤩','estrellas wow'],['😱','sorpresa shock'],['🥳','festejo fiesta'],['😋','rico delicioso'],['🤤','antojo baba'],['😴','dormir cansado'],['🫶','manos corazon amor']],
-    'Símbolos': [['❤️','corazon rojo amor'],['🧡','corazon naranja'],['💛','corazon amarillo'],['💚','corazon verde'],['💙','corazon azul'],['💜','corazon violeta'],['⭐','estrella'],['🌟','estrella brillo'],['💫','estrella mareo'],['💯','cien perfecto'],['✅','check tilde ok'],['👉','flecha derecha mano'],['👇','flecha abajo mano'],['💸','plata dinero vuela'],['💰','dinero bolsa plata'],['🏷️','etiqueta precio oferta'],['🔝','top arriba'],['🆕','nuevo new']]
+    'Símbolos': [['❤️','corazon rojo amor'],['🧡','corazon naranja'],['💛','corazon amarillo'],['💚','corazon verde'],['💙','corazon azul'],['💜','corazon violeta'],['⭐','estrella'],['🌟','estrella brillo'],['💫','estrella mareo'],['💯','cien perfecto'],['✅','check tilde ok'],['👉','flecha derecha mano'],['👇','flecha abajo mano'],['💸','plata dinero vuela'],['💰','dinero bolsa plata'],['🏷️','etiqueta precio oferta'],['🔝','top arriba'],['🆕','nuevo new']],
+    'Banderas': [['🇩🇴','republica dominicana punta cana saona bandera'],['🇲🇽','mexico cancun riviera maya bandera'],['🇦🇼','aruba bandera'],['🇯🇲','jamaica bandera'],['🇧🇸','bahamas bandera'],['🇨🇺','cuba varadero habana bandera'],['🇧🇷','brasil rio janeiro bandera'],['🇦🇷','argentina bandera'],['🇺🇸','estados unidos miami orlando nueva york usa bandera'],['🇫🇷','francia paris bandera'],['🇮🇹','italia roma bandera'],['🇪🇸','españa madrid barcelona bandera'],['🇬🇧','reino unido londres inglaterra bandera'],['🇵🇹','portugal lisboa bandera'],['🇬🇷','grecia atenas santorini bandera'],['🇹🇷','turquia estambul bandera'],['🇪🇬','egipto bandera'],['🇦🇪','emiratos dubai bandera'],['🇹🇭','tailandia bandera'],['🇯🇵','japon tokio bandera'],['🇨🇱','chile bandera'],['🇵🇪','peru cusco machu picchu bandera'],['🇨🇴','colombia cartagena bandera'],['🇺🇾','uruguay punta este bandera'],['🇨🇷','costa rica bandera'],['🇵🇦','panama bandera'],['🏳️','bandera blanca'],['🏁','bandera cuadros meta'],['🚩','bandera roja']]
   };
   let emojiCatActual = 'Viaje';
   const pal = $('emojiPal');
@@ -1713,6 +1833,40 @@
     return size + 4;
   }
 
+  // Dibuja la caja/contorno de fondo de un texto. (0,0) = centro del texto. textW/textH = medidas.
+  function dibujarFondoTexto(estilo, color, textW, textH){
+    if (!estilo || estilo === 'ninguno') return;
+    const padX = textH * 0.4, padY = textH * 0.28;
+    const w = textW + padX * 2, h = textH + padY * 2;
+    const x = -w / 2, y = -h / 2;
+    if (estilo === 'caja'){
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    } else if (estilo === 'redondeada'){
+      ctx.fillStyle = color;
+      const r = h * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fill();
+    } else if (estilo === 'contorno'){
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(3, textH * 0.06);
+      const r = h * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
   function regHit(key, cx, cy, w, h){
     const W = cv.width, H = cv.height;
     const padX = 30, padY = 30; // margen extra para agarrar fácil
@@ -1868,8 +2022,10 @@
       ctx.translate(anD.dx, anD.dy); ctx.scale(anD.sc, anD.sc); ctx.globalAlpha *= anD.al;
       const famDet = famDe('detalle');
       ctx.font = `600 ${D.size}px ${famDet}`;
+      const dWmed = ctx.measureText(detalle).width;
+      if (D.bg && D.bg !== 'ninguno') dibujarFondoTexto(D.bg, D.bgColor, dWmed, D.size);
       ctx.fillStyle = D.color;
-      ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10;
+      if (!D.bg || D.bg === 'ninguno'){ ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10; }
       ctx.fillText(detalle, 0, D.size * 0.34);
       ctx.shadowBlur = 0;
       const dW = ctx.measureText(detalle).width;
@@ -1893,8 +2049,10 @@
       ctx.translate(anX.dx, anX.dy); ctx.scale(anX.sc, anX.sc); ctx.globalAlpha *= anX.al;
       ctx.font = `${pesoDe(t.font || fam)} ${t.size}px ${t.font || fam}`;
       ctx.textAlign = 'center';
+      const tWmed = ctx.measureText(t.text).width;
+      if (t.bg && t.bg !== 'ninguno') dibujarFondoTexto(t.bg, t.bgColor || '#2DD4BF', tWmed, t.size);
       ctx.fillStyle = t.color;
-      ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 14;
+      if (!t.bg || t.bg === 'ninguno'){ ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 14; }
       ctx.fillText(t.text, 0, t.size * 0.34);
       ctx.shadowBlur = 0;
       const w = ctx.measureText(t.text).width + 40, h = t.size * 1.3;
@@ -1992,12 +2150,15 @@
       ctx.rotate(RAD(T.rot));
       const anT = animA(localAnim, 0, T.anim);
       ctx.translate(anT.dx, anT.dy); ctx.scale(anT.sc, anT.sc); ctx.globalAlpha *= anT.al;
-      ctx.textAlign = 'center'; ctx.fillStyle = T.color;
-      ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18;
+      ctx.textAlign = 'center';
       const famT = famDe('titulo');
       const pwT = pesoDe(famT);
       const size = fitSize(titulo.toUpperCase(), W * 0.9, T.size, pwT, famT);
       ctx.font = `${pwT} ${size}px ${famT}`;
+      const txtW_T = ctx.measureText(titulo.toUpperCase()).width;
+      if (T.bg && T.bg !== 'ninguno') dibujarFondoTexto(T.bg, T.bgColor, txtW_T, size);
+      ctx.fillStyle = T.color;
+      if (!T.bg || T.bg === 'ninguno'){ ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18; }
       ctx.fillText(titulo.toUpperCase(), 0, size * 0.34);
       ctx.shadowBlur = 0;
       ctx.fillStyle = accent();
@@ -2022,8 +2183,10 @@
       ctx.translate(anC.dx, anC.dy); ctx.scale(anC.sc, anC.sc); ctx.globalAlpha *= anC.al;
       ctx.font = `${pwC} ${size}px ${famCap}`;
       ctx.textAlign = 'center';
+      const cWmed = ctx.measureText(cap).width;
+      if (C.bg && C.bg !== 'ninguno') dibujarFondoTexto(C.bg, C.bgColor, cWmed, size);
       ctx.fillStyle = C.color;
-      ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 16;
+      if (!C.bg || C.bg === 'ninguno'){ ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 16; }
       ctx.fillText(cap, 0, size * 0.34);
       ctx.shadowBlur = 0;
       const cW = ctx.measureText(cap).width;
@@ -2043,8 +2206,11 @@
       ctx.translate(anA2.dx, anA2.dy); ctx.scale(anA2.sc, anA2.sc); ctx.globalAlpha *= anA2.al;
       const famCta = famDe('cta');
       ctx.font = `${pesoDe(famCta)} ${C.size}px ${famCta}`;
-      ctx.fillStyle = C.color; ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 12;
+      ctx.textAlign = 'center';
+      const ctaWmed = ctx.measureText(cta).width;
+      if (C.bg && C.bg !== 'ninguno') dibujarFondoTexto(C.bg, C.bgColor, ctaWmed, C.size);
+      ctx.fillStyle = C.color;
+      if (!C.bg || C.bg === 'ninguno'){ ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 12; }
       ctx.fillText(cta, 0, C.size * 0.34);
       ctx.shadowBlur = 0;
       const aW = ctx.measureText(cta).width;
