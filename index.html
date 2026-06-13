@@ -203,7 +203,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v9.3</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v9.4</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -931,7 +931,21 @@
     const s = $('fuente');
     s.style.fontFamily = s.value || 'inherit';
   }
-  $('fuente').addEventListener('change', () => { reflejarFuenteSelect(); drawFrameStatic(); });
+  function asegurarFuente(fam, cb){
+    if (!fam || !document.fonts || !document.fonts.load){ cb(); return; }
+    try {
+      const pw = pesoDe(fam);
+      Promise.all([
+        document.fonts.load(`${pw} 80px ${fam}`),
+        document.fonts.load(`700 80px ${fam}`)
+      ]).then(cb).catch(cb);
+    } catch(e){ cb(); }
+  }
+  $('fuente').addEventListener('change', () => {
+    reflejarFuenteSelect();
+    asegurarFuente($('fuente').value, drawFrameStatic);
+    drawFrameStatic();
+  });
   reflejarFuenteSelect();
   $('estiloPrecio').addEventListener('change', () => {
     $('precioAntWrap').style.display = $('estiloPrecio').value === 'oferta' ? 'block' : 'none';
@@ -1318,7 +1332,11 @@
   llenarTxFont();
   $('txFont').addEventListener('change', () => {
     $('txFont').style.fontFamily = $('txFont').value || 'inherit';
-    if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].font = $('txFont').value; drawFrameStatic(); }
+    if (selTx >= 0 && txLibres[selTx]){
+      txLibres[selTx].font = $('txFont').value;
+      asegurarFuente($('txFont').value, drawFrameStatic);
+      drawFrameStatic();
+    }
   });
   $('txRot').addEventListener('input', () => {
     if (selTx >= 0 && txLibres[selTx]){
@@ -1568,8 +1586,9 @@
     ctx.textAlign = 'center';
 
     const pulse = $('pulso').checked && (playing || exporting) ? 1 + 0.045 * Math.sin(tGlobal * Math.PI * 3) : 1;
-    let size = fitSize(precio, W * 0.85, P.size, 900, fam) * pulse;
-    ctx.font = `900 ${size}px ${fam}`;
+    const pwP = pesoDe(fam);
+    let size = fitSize(precio, W * 0.85, P.size, pwP, fam) * pulse;
+    ctx.font = `${pwP} ${size}px ${fam}`;
     const tw = ctx.measureText(precio).width;
 
     if (estilo === 'pastilla'){
@@ -1612,7 +1631,7 @@
         ctx.stroke();
       }
       ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 22;
-      ctx.font = `900 ${size}px ${fam}`;
+      ctx.font = `${pwP} ${size}px ${fam}`;
       ctx.fillStyle = P.color;
       ctx.fillText(precio, px, py + size * 0.34);
       ctx.shadowBlur = 0;
@@ -1652,7 +1671,7 @@
       ctx.rotate(RAD(t.rot));
       const anX = animA(localAnim, 0.15 + i * 0.08);
       ctx.translate(0, anX.dy); ctx.scale(anX.sc, anX.sc); ctx.globalAlpha *= anX.al;
-      ctx.font = `700 ${t.size}px ${t.font || fam}`;
+      ctx.font = `${pesoDe(t.font || fam)} ${t.size}px ${t.font || fam}`;
       ctx.textAlign = 'center';
       ctx.fillStyle = t.color;
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 14;
