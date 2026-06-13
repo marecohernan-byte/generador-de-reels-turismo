@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v11.4</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v11.5</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -2615,8 +2615,8 @@
     setStatus('Grabando el video en tiempo real, no cambies de pestaña…');
 
     const stream = cv.captureStream(FPS);
-    const BITRATES = { 1080: 8_000_000, 1440: 14_000_000, 2160: 28_000_000 };
-    const bitrate = BITRATES[parseInt($('calidad').value)] || 8_000_000;
+    const BITRATES = { 1080: 16_000_000, 1440: 28_000_000, 2160: 50_000_000 };
+    const bitrate = BITRATES[parseInt($('calidad').value)] || 16_000_000;
 
     // Música → pista de audio en el stream
     let actx = null, srcNode = null;
