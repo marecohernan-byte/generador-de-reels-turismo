@@ -203,7 +203,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v9.4</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v9.5</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -931,19 +931,24 @@
     const s = $('fuente');
     s.style.fontFamily = s.value || 'inherit';
   }
-  function asegurarFuente(fam, cb){
-    if (!fam || !document.fonts || !document.fonts.load){ cb(); return; }
+  const fuentesListas = new Set();
+  function asegurarFuente(fam){
+    if (!fam || fuentesListas.has(fam) || !document.fonts || !document.fonts.load) return;
+    fuentesListas.add(fam);  // marcar de una para no reintentar nunca en bucle
+    let pw = 900;
+    try { pw = pesoDe(fam); } catch(e){}
+    const reintentar = () => { try { drawFrameStatic(); } catch(e){} };
     try {
-      const pw = pesoDe(fam);
+      const t = setTimeout(reintentar, 1500); // failsafe: redibuja igual aunque la promesa no resuelva
       Promise.all([
-        document.fonts.load(`${pw} 80px ${fam}`),
-        document.fonts.load(`700 80px ${fam}`)
-      ]).then(cb).catch(cb);
-    } catch(e){ cb(); }
+        document.fonts.load(`${pw} 80px ${fam}`).catch(()=>{}),
+        document.fonts.load(`700 80px ${fam}`).catch(()=>{})
+      ]).then(() => { clearTimeout(t); reintentar(); }).catch(() => { clearTimeout(t); });
+    } catch(e){}
   }
   $('fuente').addEventListener('change', () => {
     reflejarFuenteSelect();
-    asegurarFuente($('fuente').value, drawFrameStatic);
+    asegurarFuente($('fuente').value);
     drawFrameStatic();
   });
   reflejarFuenteSelect();
@@ -1334,7 +1339,7 @@
     $('txFont').style.fontFamily = $('txFont').value || 'inherit';
     if (selTx >= 0 && txLibres[selTx]){
       txLibres[selTx].font = $('txFont').value;
-      asegurarFuente($('txFont').value, drawFrameStatic);
+      asegurarFuente($('txFont').value);
       drawFrameStatic();
     }
   });
