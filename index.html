@@ -200,7 +200,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.3</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.4</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -957,7 +957,29 @@
       ]).then(() => { clearTimeout(t); reintentar(); }).catch(() => { clearTimeout(t); });
     } catch(e){}
   }
+  let fuentePreviaReal = null;  // recuerda la fuente real mientras se "espía" otra
+  function previsualizarFuente(fam){
+    if (fam == null){
+      // volver a la real
+      if (fuentePreviaReal != null){ $('fuente').value = fuentePreviaReal; fuentePreviaReal = null; drawFrameStatic(); }
+      return;
+    }
+    if (fuentePreviaReal == null) fuentePreviaReal = $('fuente').value;
+    $('fuente').value = fam;
+    asegurarFuente(fam);
+    drawFrameStatic();
+  }
+  // Al pasar el mouse por cada opción del desplegable, mostrar esa fuente en la preview
+  $('fuente').querySelectorAll('option').forEach(opt => {
+    opt.addEventListener('mouseenter', () => previsualizarFuente(opt.value));
+  });
+  // Si el desplegable se cierra sin elegir (mouse sale), volver a la real
+  $('fuente').addEventListener('mouseleave', () => {
+    // pequeño retraso: si fue un cambio real, 'change' ya lo fijó
+    setTimeout(() => { if (fuentePreviaReal != null) previsualizarFuente(null); }, 50);
+  });
   $('fuente').addEventListener('change', () => {
+    fuentePreviaReal = null;  // la elección queda firme
     reflejarFuenteSelect();
     asegurarFuente($('fuente').value);
     drawFrameStatic();
