@@ -189,11 +189,10 @@
   }
   .storybars i b{display:block;height:100%;width:0%;background:#fff}
   .preview-note{font-size:12px;color:var(--muted);text-align:center;max-width:300px;line-height:1.5}
-  .preview-col{position:sticky;top:14px;align-self:start;z-index:5}
   @media (max-width:900px){
-    .preview-col{top:8px}
     .phone{width:min(200px,46vw)}
   }
+  .preview-col.fixed .phone{position:fixed;top:90px;z-index:50}
 
   @media (prefers-reduced-motion:reduce){ .btn{transition:none} .emoji-pal button{transition:none} }
 </style>
@@ -201,7 +200,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v9.9</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.0</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -2051,6 +2050,25 @@
   document.fonts.ready.then(drawFrameStatic);
   drawFrameStatic();
   syncEditor();
+
+  // Vista previa fija mientras se scrollea, sin duplicados (reemplaza a sticky)
+  (function fijarPreview(){
+    const col = document.querySelector('.preview-col');
+    const ph = document.querySelector('.phone');
+    if (!col || !ph) return;
+    function ajustar(){
+      // solo en pantallas anchas (en mobile la preview va arriba, en flujo normal)
+      if (window.innerWidth <= 900){ col.classList.remove('fixed'); ph.style.left = ph.style.width = ''; return; }
+      const rect = col.getBoundingClientRect();
+      col.classList.add('fixed');
+      // mantener el ancho y la posición horizontal de la columna
+      ph.style.width = Math.min(320, rect.width) + 'px';
+      ph.style.left = (rect.left + (rect.width - Math.min(320, rect.width)) / 2) + 'px';
+    }
+    ajustar();
+    window.addEventListener('resize', ajustar);
+    window.addEventListener('scroll', () => {}, {passive:true});
+  })();
 
   // ---------- Loop del video seleccionado (para verlo en movimiento al editar) ----------
   let slideLoopRaf = null, slideLoopActivo = false;
