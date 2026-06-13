@@ -189,6 +189,13 @@
   }
   .storybars i b{display:block;height:100%;width:0%;background:#fff}
   .preview-note{font-size:12px;color:var(--muted);text-align:center;max-width:300px;line-height:1.5}
+  @media (min-width:901px){
+    .preview-col{position:sticky;top:22px;align-self:start}
+  }
+  .phone.mini{
+    position:fixed;right:12px;bottom:16px;width:118px;z-index:999;
+    box-shadow:0 12px 32px rgba(0,0,0,.65);border-radius:16px;border-color:var(--turquesa);
+  }
 
   @media (prefers-reduced-motion:reduce){ .btn{transition:none} .emoji-pal button{transition:none} }
 </style>
@@ -196,7 +203,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v8.6</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v8.7</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -632,9 +639,12 @@
           }
         }
         renderThumbs(); drawFrameStatic();
+        if (selSlide >= 0 && media[selSlide] && media[selSlide].type === 'video') startSlideLoop();
+        else stopSlideLoop();
       };
       d.querySelector('.del').onclick = e => {
         e.stopPropagation();
+        stopSlideLoop();
         media.splice(i,1);
         if (selSlide === i) selSlide = -1;
         else if (selSlide > i) selSlide--;
@@ -649,6 +659,7 @@
         if (dragIdx === null || dragIdx === i) return;
         const [moved] = media.splice(dragIdx, 1);
         media.splice(i, 0, moved);
+        stopSlideLoop();
         dragIdx = null; selSlide = -1;
         $('capWrap').style.display = 'none';
         renderThumbs(); drawFrameStatic();
@@ -688,6 +699,7 @@
   }
   $('trim').addEventListener('input', () => {
     if (selSlide < 0 || !media[selSlide] || media[selSlide].type !== 'video') return;
+    stopSlideLoop();
     const m = media[selSlide];
     m.startAt = parseFloat($('trim').value) || 0;
     $('trimVal').textContent = $('trim').value;
@@ -711,9 +723,9 @@
         renderThumbs();
       } catch(e){}
     };
-    if (Math.abs(v.currentTime - m.startAt) < 0.2 && v.readyState >= 2){ hacerThumb(); drawFrameStatic(); }
+    if (Math.abs(v.currentTime - m.startAt) < 0.2 && v.readyState >= 2){ hacerThumb(); drawFrameStatic(); startSlideLoop(); }
     else {
-      v.addEventListener('seeked', () => { hacerThumb(); drawFrameStatic(); }, {once:true});
+      v.addEventListener('seeked', () => { hacerThumb(); drawFrameStatic(); startSlideLoop(); }, {once:true});
       try { v.currentTime = m.startAt; } catch(e){}
     }
   });
@@ -1607,8 +1619,58 @@
   drawFrameStatic();
   syncEditor();
 
+  // En pantallas chicas, la vista previa se vuelve una ventanita flotante al scrollear
+  if (window.matchMedia('(max-width:900px)').matches && 'IntersectionObserver' in window){
+    const col = document.querySelector('.preview-col');
+    const ph = document.querySelector('.phone');
+    const sent = document.createElement('div');
+    sent.style.cssText = 'height:1px;width:100%';
+    col.insertBefore(sent, col.firstChild);
+    new IntersectionObserver(es => {
+      const fuera = !es[0].isIntersecting;
+      if (fuera && !ph.classList.contains('mini')){
+        col.style.minHeight = ph.offsetHeight + 'px';
+        ph.classList.add('mini');
+      } else if (!fuera && ph.classList.contains('mini')){
+        ph.classList.remove('mini');
+        col.style.minHeight = '';
+      }
+    }, { rootMargin: '-1px 0px 0px 0px' }).observe(sent);
+  }
+
+  // ---------- Loop del video seleccionado (para verlo en movimiento al editar) ----------
+  let slideLoopRaf = null, slideLoopActivo = false;
+  function stopSlideLoop(){
+    if (slideLoopRaf) cancelAnimationFrame(slideLoopRaf);
+    slideLoopRaf = null;
+    if (slideLoopActivo){
+      media.forEach(m => { if (m.type === 'video') m.el.pause(); });
+      slideLoopActivo = false;
+    }
+  }
+  function startSlideLoop(){
+    stopSlideLoop();
+    if (playing || exporting) return;
+    if (selSlide < 0 || !media[selSlide] || media[selSlide].type !== 'video') return;
+    const m = media[selSlide], v = m.el;
+    slideLoopActivo = true;
+    try { v.currentTime = m.startAt || 0; } catch(e){}
+    v.play().catch(()=>{});
+    const loop = () => {
+      if (!slideLoopActivo) return;
+      const dur = itemDur(m);
+      const local = Math.max(0, v.currentTime - (m.startAt || 0));
+      if (local >= dur - 0.05 || v.ended){ try { v.currentTime = m.startAt || 0; } catch(e){} }
+      const sch = schedule();
+      renderAt(sch.starts[selSlide] + Math.min(local, dur - 0.02), false);
+      slideLoopRaf = requestAnimationFrame(loop);
+    };
+    slideLoopRaf = requestAnimationFrame(loop);
+  }
+
   // ---------- Vista previa ----------
   $('btnPlay').onclick = () => {
+    stopSlideLoop();
     if (playing){
       cancelAnimationFrame(rafId); playing = false; stopAllVideos();
       if (previewAudio){ previewAudio.pause(); previewAudio.currentTime = 0; }
@@ -1641,6 +1703,7 @@
   $('btnExport').onclick = async () => {
     if (exporting || !media.length) return;
     if (playing){ cancelAnimationFrame(rafId); playing = false; $('btnPlay').textContent = '▶ Vista previa'; }
+    stopSlideLoop();
     stopAllVideos();
     if (previewAudio) previewAudio.pause();
     selSticker = -1; updateStickerCtrl();
