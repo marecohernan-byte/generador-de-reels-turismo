@@ -200,7 +200,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.0</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.2</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -309,7 +309,10 @@
           <input type="text" id="precioAnt" placeholder="USD 1.490">
         </div>
       </div>
-      <button class="btn-small" id="btnAddTx" style="margin-top:14px">＋ Agregar texto libre</button>
+      <div class="music-row" style="margin-top:14px">
+        <button class="btn-small" id="btnAddTx">＋ Agregar texto libre</button>
+        <button class="btn-small danger" id="btnLimpiarExtras">🧹 Limpiar textos y emojis</button>
+      </div>
       <div class="sticker-ctrl" id="txCtrl">
         <div class="head">
           <span style="font-size:14px;font-weight:700">Texto libre</span>
@@ -1066,6 +1069,10 @@
       stickers = Array.isArray(s.stickers) ? s.stickers : [];
       selSticker = -1; updateStickerCtrl();
       txLibres = Array.isArray(s.txLibres) ? s.txLibres : [];
+      // mantener todo dentro del area visible
+      const clamp = v => Math.min(0.92, Math.max(0.08, v));
+      txLibres.forEach(t => { t.x = clamp(t.x); t.y = clamp(t.y); });
+      stickers.forEach(st => { st.x = clamp(st.x); st.y = clamp(st.y); });
       selTx = -1; updateTxCtrl();
       accentCustom = !!s.accentCustom;
       if (s.accent) $('accentColor').value = s.accent;
@@ -1303,8 +1310,15 @@
     $('txRot').value = txLibres[selTx].rot || 0;
     $('txRotVal').textContent = txLibres[selTx].rot || 0;
   }
+  $('btnLimpiarExtras').onclick = () => {
+    txLibres = []; stickers = [];
+    selTx = -1; selSticker = -1;
+    updateTxCtrl(); updateStickerCtrl();
+    drawFrameStatic();
+    setStatus('Se quitaron todos los textos libres y emojis.', 'ok');
+  };
   $('btnAddTx').onclick = () => {
-    txLibres.push({text:'Tu texto', x:0.5, y:0.32, size:60, color:'#FFFFFF'});
+    txLibres.push({text:'Tu texto', x:0.5, y:0.5, size:60, color:'#FFFFFF', rot:0, font:''});
     selTx = txLibres.length - 1;
     selSticker = -1; updateStickerCtrl();
     updateTxCtrl();
@@ -1398,7 +1412,6 @@
     return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
   }
   function hitTest(p){
-    if (txHit.length !== txLibres.length){ try { drawFrameStatic(); } catch(e){} }
     for (let i = stickers.length - 1; i >= 0; i--){
       const s = stickers[i];
       const rx = (s.size / cv.width) * 0.65, ry = (s.size / cv.height) * 0.65;
@@ -1717,7 +1730,23 @@
     });
   }
 
+  function saneCoord(o, dx, dy){
+    if (typeof o.x !== 'number' || isNaN(o.x)) o.x = dx;
+    if (typeof o.y !== 'number' || isNaN(o.y)) o.y = dy;
+    o.x = Math.min(1, Math.max(0, o.x));
+    o.y = Math.min(1, Math.max(0, o.y));
+    if (o.rot != null && (typeof o.rot !== 'number' || isNaN(o.rot))) o.rot = 0;
+  }
+  function sanearTodo(){
+    saneCoord(els.titulo, .5, .13); saneCoord(els.precio, .5, .76);
+    saneCoord(els.detalle, .5, .83); saneCoord(els.cta, .5, .63);
+    saneCoord(els.caption, .5, .42); saneCoord(els.logo, .5, .95);
+    txLibres.forEach(t => saneCoord(t, .5, .5));
+    stickers.forEach(s => saneCoord(s, .5, .45));
+  }
+
   function drawOverlays(slideIndex, tGlobal){
+    sanearTodo();
     const W = cv.width, H = cv.height;
     const titulo  = $('titulo').value.trim();
     const cta     = $('cta').value.trim();
@@ -1751,8 +1780,9 @@
       ctx.translate(0, anT.dy); ctx.scale(anT.sc, anT.sc); ctx.globalAlpha *= anT.al;
       ctx.textAlign = 'center'; ctx.fillStyle = T.color;
       ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18;
-      const size = fitSize(titulo.toUpperCase(), W * 0.9, T.size, 900, fam);
-      ctx.font = `900 ${size}px ${fam}`;
+      const pwT = pesoDe(fam);
+      const size = fitSize(titulo.toUpperCase(), W * 0.9, T.size, pwT, fam);
+      ctx.font = `${pwT} ${size}px ${fam}`;
       ctx.fillText(titulo.toUpperCase(), 0, size * 0.34);
       ctx.shadowBlur = 0;
       ctx.fillStyle = accent();
