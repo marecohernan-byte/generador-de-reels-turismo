@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.7</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.8</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -341,8 +341,10 @@
         <select id="txFont"></select>
         <label>Rotación: <span id="txRotVal">0</span>°</label>
         <input type="range" id="txRot" min="-180" max="180" value="0">
-        <label>Animación de entrada</label>
-        <select id="txAnim">
+        <label>Animación — usá ◀ ▶ para verlas en vivo</label>
+        <div class="fuente-nav">
+          <button type="button" id="txAnimPrev" title="Anterior">◀</button>
+          <select id="txAnim">
           <option value="auto">Igual que la general</option>
             <option value="ninguna">Sin animación</option>
             <option value="subir">Deslizar hacia arriba</option>
@@ -352,7 +354,9 @@
             <option value="fade">Aparecer suave</option>
             <option value="zoom">Zoom</option>
             <option value="pop">Rebote</option>
-        </select>
+          </select>
+          <button type="button" id="txAnimNext" title="Siguiente">▶</button>
+        </div>
         <p class="font-note" style="margin-top:8px">Arrastralo sobre la vista previa para ubicarlo.</p>
       </div>
       <label>Marca</label>
@@ -389,8 +393,10 @@
           </div>
           <label>Rotación: <span id="elRotVal">0</span>°</label>
           <input type="range" id="elRot" min="-180" max="180" value="0">
-          <label for="elAnim">Animación de entrada de este texto</label>
-          <select id="elAnim">
+          <label for="elAnim">Animación — usá ◀ ▶ para verlas en vivo</label>
+          <div class="fuente-nav">
+            <button type="button" id="elAnimPrev" title="Anterior">◀</button>
+            <select id="elAnim">
             <option value="auto">Igual que la general</option>
             <option value="ninguna">Sin animación</option>
             <option value="subir">Deslizar hacia arriba</option>
@@ -400,7 +406,9 @@
             <option value="fade">Aparecer suave</option>
             <option value="zoom">Zoom</option>
             <option value="pop">Rebote</option>
-          </select>
+            </select>
+            <button type="button" id="elAnimNext" title="Siguiente">▶</button>
+          </div>
           <div class="row" id="fuenteRow">
             <div>
               <label for="fuente">Tipografía — usá ◀ ▶ para verlas en vivo</label>
@@ -1096,8 +1104,19 @@
   });
   $('elAnim').addEventListener('change', () => {
     if (els[curEl]) els[curEl].anim = $('elAnim').value;
-    drawFrameStatic();
+    reproducirMuestra();
   });
+  function moverAnimEl(dir){
+    const sel = $('elAnim');
+    let i = sel.selectedIndex + dir;
+    if (i < 0) i = sel.options.length - 1;
+    if (i >= sel.options.length) i = 0;
+    sel.selectedIndex = i;
+    if (els[curEl]) els[curEl].anim = sel.value;
+    reproducirMuestra();
+  }
+  $('elAnimPrev').onclick = () => moverAnimEl(-1);
+  $('elAnimNext').onclick = () => moverAnimEl(1);
   $('logoRot').addEventListener('input', () => {
     els.logo.rot = parseInt($('logoRot').value);
     $('logoRotVal').textContent = els.logo.rot;
@@ -1119,7 +1138,7 @@
   $('accentReset').onclick = () => { accentCustom = false; $('accentColor').value = BRAND_ACCENT[brand]; drawFrameStatic(); };
   $('shade').addEventListener('input', () => { $('shadeVal').textContent = $('shade').value; drawFrameStatic(); });
   $('filtro').addEventListener('change', drawFrameStatic);
-  $('animTexto').addEventListener('change', drawFrameStatic);
+  $('animTexto').addEventListener('change', () => reproducirMuestra());
 
   // ---------- Plantillas ----------
   function snapshot(){
@@ -1449,8 +1468,20 @@
     }
   });
   $('txAnim').addEventListener('change', () => {
-    if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].anim = $('txAnim').value; drawFrameStatic(); }
+    if (selTx >= 0 && txLibres[selTx]){ txLibres[selTx].anim = $('txAnim').value; reproducirMuestra(); }
   });
+  function moverAnimTx(dir){
+    if (selTx < 0 || !txLibres[selTx]) return;
+    const sel = $('txAnim');
+    let i = sel.selectedIndex + dir;
+    if (i < 0) i = sel.options.length - 1;
+    if (i >= sel.options.length) i = 0;
+    sel.selectedIndex = i;
+    txLibres[selTx].anim = sel.value;
+    reproducirMuestra();
+  }
+  $('txAnimPrev').onclick = () => moverAnimTx(-1);
+  $('txAnimNext').onclick = () => moverAnimTx(1);
   $('txDel').onclick = () => {
     if (selTx >= 0){ txLibres.splice(selTx, 1); selTx = -1; updateTxCtrl(); drawFrameStatic(); }
   };
@@ -2154,6 +2185,28 @@
     document.querySelectorAll('#storybars i b').forEach((b, k) => {
       b.style.width = k < i ? '100%' : k === i ? (local * 100) + '%' : '0%';
     });
+  }
+
+  // Reproduce una muestra corta de las animaciones de entrada para verlas en vivo al editar
+  let muestraRaf = null, muestraActiva = false;
+  function reproducirMuestra(){
+    if (muestraRaf) cancelAnimationFrame(muestraRaf);
+    if (playing || exporting) return;  // no pisar la reproducción real
+    muestraActiva = true;
+    const DUR = 1.1;
+    const start = performance.now();
+    const idx = (curEl === 'cta') ? Math.max(0, media.length - 1) : (selSlide >= 0 ? selSlide : 0);
+    const base = media.length ? schedule().starts[Math.min(idx, media.length - 1)] : 0;
+    const loop = now => {
+      const local = (now - start) / 1000;
+      if (local >= DUR){ muestraActiva = false; drawFrameStatic(); return; }
+      // engañar a animA haciéndole creer que está "reproduciendo" desde el inicio del slide
+      const prevPlaying = playing;
+      playing = true;
+      try { renderAt(base + local, false); } finally { playing = prevPlaying; }
+      muestraRaf = requestAnimationFrame(loop);
+    };
+    muestraRaf = requestAnimationFrame(loop);
   }
 
   function drawFrameStatic(){
