@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v11.0</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v11.1</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -551,9 +551,11 @@
     </div>
 
     <div class="panel">
-      <h2>5 · Emojis</h2>
-      <p class="font-note" style="margin-bottom:8px">Tocá un emoji para agregarlo y arrastralo sobre la vista previa.</p>
-      <div class="emoji-pal" id="emojiPal"></div>
+      <h2>5 · Emojis y stickers</h2>
+      <p class="font-note" style="margin-bottom:8px">Buscá o elegí una categoría. Tocá uno para agregarlo, arrastralo sobre la vista previa y dale movimiento.</p>
+      <input type="text" id="emojiSearch" placeholder="🔍 Buscar emoji (ej: avión, sol, fuego, corazón)">
+      <div class="chips" id="emojiCats" style="margin-top:10px"></div>
+      <div class="emoji-pal" id="emojiPal" style="max-height:200px;overflow-y:auto"></div>
       <div class="sticker-ctrl" id="stickerCtrl">
         <div class="head">
           <span id="stickerCur">🌴</span>
@@ -563,6 +565,15 @@
         <input type="range" id="stickerSize" min="60" max="320" value="140">
         <label>Rotación: <span id="stickerRotVal">0</span>°</label>
         <input type="range" id="stickerRot" min="-180" max="180" value="0">
+        <label for="stickerMov">Movimiento</label>
+        <select id="stickerMov">
+          <option value="ninguno">Quieto</option>
+          <option value="latir">Latir (pulso)</option>
+          <option value="flotar">Flotar (arriba/abajo)</option>
+          <option value="girar">Girar 360°</option>
+          <option value="bambolear">Bambolear (vaivén)</option>
+          <option value="entrar">Aparecer con rebote</option>
+        </select>
       </div>
     </div>
 
@@ -1486,19 +1497,60 @@
     if (selTx >= 0){ txLibres.splice(selTx, 1); selTx = -1; updateTxCtrl(); drawFrameStatic(); }
   };
 
-  // ---------- Emojis ----------
-  const EMOJIS = ['🌴','🏝️','✈️','☀️','🌊','🍹','🛳️','🎉','🔥','❤️','😍','💸','📍','🤿','🐠','🏨','🥥','⭐','👉','💯'];
+  // ---------- Emojis y stickers ----------
+  // Biblioteca por categorías con nombres para poder buscarlos
+  const EMOJI_LIB = {
+    'Viaje': [['✈️','avion vuelo'],['🛫','despegue avion'],['🛬','aterrizaje avion'],['🧳','valija equipaje'],['🗺️','mapa'],['📍','ubicacion pin lugar'],['🎫','ticket pasaje'],['🛂','migraciones pasaporte'],['🛳️','crucero barco'],['⛴️','ferry barco'],['🚢','barco'],['🚐','combi van'],['🚌','micro bus'],['🚗','auto coche'],['🏔️','montaña'],['🗽','nueva york estatua'],['🗼','torre paris tokio'],['🏰','castillo'],['🎡','rueda parque'],['🎢','montaña rusa parque']],
+    'Playa': [['🏝️','isla playa'],['🏖️','playa sombrilla'],['🌴','palmera'],['🌊','ola mar agua'],['☀️','sol'],['🌅','amanecer atardecer'],['🌇','atardecer'],['🐠','pez tropical'],['🐟','pez'],['🐬','delfin'],['🐢','tortuga'],['🦀','cangrejo'],['🐚','caracol concha'],['🤿','buceo snorkel'],['🏄','surf'],['🏊','nadar pileta'],['⛱️','sombrilla playa'],['🥥','coco'],['🩴','ojotas chancletas'],['🐚','concha']],
+    'Fiesta': [['🎉','fiesta celebracion'],['🎊','confeti fiesta'],['🍹','trago coctel'],['🍸','trago martini'],['🍺','cerveza'],['🥂','brindis champagne'],['🍾','champagne'],['🔥','fuego hot'],['💃','baile mujer'],['🕺','baile hombre'],['🎶','musica notas'],['🎵','musica nota'],['🎤','microfono cantar'],['🪩','bola disco'],['✨','brillo destellos'],['🎆','fuegos artificiales'],['🎇','fuegos artificiales']],
+    'Hotel': [['🏨','hotel'],['🛏️','cama hotel'],['🏊','pileta nadar'],['🛁','bañera spa'],['💆','spa masaje'],['🍽️','comida plato cena'],['🥂','brindis'],['☕','cafe desayuno'],['🍳','desayuno huevo'],['🌺','flor tropical'],['🛎️','recepcion campana'],['🧖','spa sauna']],
+    'Caras': [['😍','enamorado corazones'],['🥰','cariño amor'],['😎','genial lentes'],['🤩','estrellas wow'],['😱','sorpresa shock'],['🥳','festejo fiesta'],['😋','rico delicioso'],['🤤','antojo baba'],['😴','dormir cansado'],['🫶','manos corazon amor']],
+    'Símbolos': [['❤️','corazon rojo amor'],['🧡','corazon naranja'],['💛','corazon amarillo'],['💚','corazon verde'],['💙','corazon azul'],['💜','corazon violeta'],['⭐','estrella'],['🌟','estrella brillo'],['💫','estrella mareo'],['💯','cien perfecto'],['✅','check tilde ok'],['👉','flecha derecha mano'],['👇','flecha abajo mano'],['💸','plata dinero vuela'],['💰','dinero bolsa plata'],['🏷️','etiqueta precio oferta'],['🔝','top arriba'],['🆕','nuevo new']]
+  };
+  let emojiCatActual = 'Viaje';
   const pal = $('emojiPal');
-  EMOJIS.forEach(e => {
+  function agregarEmoji(e){
+    stickers.push({emoji:e, x:0.5, y:0.45, size:140, rot:0, mov:'ninguno'});
+    selSticker = stickers.length - 1;
+    updateStickerCtrl();
+    gestionarLoopStickers();
+    drawFrameStatic();
+  }
+  function pintarEmojis(lista){
+    pal.innerHTML = '';
+    lista.forEach(([e]) => {
+      const b = document.createElement('button');
+      b.textContent = e;
+      b.onclick = () => agregarEmoji(e);
+      pal.appendChild(b);
+    });
+  }
+  // chips de categorías
+  const cats = $('emojiCats');
+  Object.keys(EMOJI_LIB).forEach((cat, idx) => {
     const b = document.createElement('button');
-    b.textContent = e;
+    b.textContent = cat;
+    if (idx === 0) b.classList.add('active');
     b.onclick = () => {
-      stickers.push({emoji:e, x:0.5, y:0.45, size:140});
-      selSticker = stickers.length - 1;
-      updateStickerCtrl();
-      drawFrameStatic();
+      cats.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      emojiCatActual = cat;
+      $('emojiSearch').value = '';
+      pintarEmojis(EMOJI_LIB[cat]);
     };
-    pal.appendChild(b);
+    cats.appendChild(b);
+  });
+  pintarEmojis(EMOJI_LIB[emojiCatActual]);
+  // búsqueda por nombre en todas las categorías
+  $('emojiSearch').addEventListener('input', () => {
+    const q = $('emojiSearch').value.trim().toLowerCase();
+    if (!q){ pintarEmojis(EMOJI_LIB[emojiCatActual]); return; }
+    const res = [];
+    Object.values(EMOJI_LIB).forEach(arr => arr.forEach(par => {
+      if (par[1].includes(q) || par[0] === q) res.push(par);
+    }));
+    pintarEmojis(res.length ? res : []);
+    if (!res.length) pal.innerHTML = '<p class="font-note" style="padding:8px">Sin resultados. Probá otra palabra.</p>';
   });
   function updateStickerCtrl(){
     const c = $('stickerCtrl');
@@ -1508,6 +1560,7 @@
     $('stickerSize').value = stickers[selSticker].size;
     $('stickerRot').value = stickers[selSticker].rot || 0;
     $('stickerRotVal').textContent = stickers[selSticker].rot || 0;
+    $('stickerMov').value = stickers[selSticker].mov || 'ninguno';
   }
   $('stickerSize').addEventListener('input', () => {
     if (selSticker >= 0 && stickers[selSticker]){
@@ -1522,8 +1575,31 @@
       drawFrameStatic();
     }
   });
+  $('stickerMov').addEventListener('change', () => {
+    if (selSticker >= 0 && stickers[selSticker]){
+      stickers[selSticker].mov = $('stickerMov').value;
+      gestionarLoopStickers();
+      drawFrameStatic();
+    }
+  });
+  // Loop suave para que los emojis con movimiento se vean animados mientras editás
+  let stickerMovRaf = null;
+  function hayStickersConMovimiento(){
+    return stickers.some(s => s.mov && s.mov !== 'ninguno');
+  }
+  function gestionarLoopStickers(){
+    const debe = hayStickersConMovimiento() && !playing && !exporting;
+    if (debe && !stickerMovRaf){
+      const loop = () => {
+        if (!hayStickersConMovimiento() || playing || exporting){ stickerMovRaf = null; return; }
+        drawFrameStatic();
+        stickerMovRaf = requestAnimationFrame(loop);
+      };
+      stickerMovRaf = requestAnimationFrame(loop);
+    }
+  }
   $('stickerDel').onclick = () => {
-    if (selSticker >= 0){ stickers.splice(selSticker, 1); selSticker = -1; updateStickerCtrl(); drawFrameStatic(); }
+    if (selSticker >= 0){ stickers.splice(selSticker, 1); selSticker = -1; updateStickerCtrl(); gestionarLoopStickers(); drawFrameStatic(); }
   };
 
   // ---------- Arrastre sobre el canvas ----------
@@ -1835,12 +1911,23 @@
 
   function drawStickers(localAnim){
     const W = cv.width, H = cv.height;
+    const T = performance.now() / 1000;  // tiempo para el movimiento continuo
     stickers.forEach((s, i) => {
       ctx.save();
-      ctx.translate(s.x * W, s.y * H);
-      ctx.rotate(RAD(s.rot));
+      // movimiento continuo del emoji
+      let mvX = 0, mvY = 0, mvRot = 0, mvSc = 1;
+      const ph = i * 0.7;  // desfase para que no se muevan todos igual
+      switch (s.mov){
+        case 'latir':     mvSc = 1 + 0.12 * Math.sin(T * 3 + ph); break;
+        case 'flotar':    mvY = Math.sin(T * 2 + ph) * (s.size * 0.12); break;
+        case 'girar':     mvRot = (T * 90 + ph * 40) % 360; break;
+        case 'bambolear': mvRot = Math.sin(T * 2.5 + ph) * 15; break;
+        case 'entrar':    { const p = Math.min(1, ((T + ph) % 3) / 0.6); const c1=1.70158,c3=c1+1; mvSc = p>=1?1:Math.max(.01, 1 + c3*Math.pow(p-1,3) + c1*Math.pow(p-1,2)); break; }
+      }
+      ctx.translate(s.x * W + mvX, s.y * H + mvY);
+      ctx.rotate(RAD((s.rot || 0) + mvRot));
       const anS = animA(localAnim == null ? 1e9 : localAnim, 0.25 + i * 0.06);
-      ctx.translate(anS.dx || 0, anS.dy); ctx.scale(anS.sc, anS.sc); ctx.globalAlpha *= anS.al;
+      ctx.translate(anS.dx || 0, anS.dy); ctx.scale(anS.sc * mvSc, anS.sc * mvSc); ctx.globalAlpha *= anS.al;
       ctx.font = `${s.size}px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14;
