@@ -176,11 +176,11 @@
 
   .preview-col{display:flex;flex-direction:column;align-items:center;gap:14px}
   .phone{
-    width:min(320px,80vw);aspect-ratio:9/16;border-radius:28px;overflow:hidden;
+    width:min(320px,80vw);border-radius:28px;overflow:hidden;
     border:1px solid var(--line);background:#000;position:relative;
-    box-shadow:0 24px 60px rgba(0,0,0,.5);
+    box-shadow:0 24px 60px rgba(0,0,0,.5);line-height:0;
   }
-  .phone canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  .phone canvas{width:100%;height:auto;display:block;touch-action:none;cursor:grab}
   .storybars{
     position:absolute;top:10px;left:10px;right:10px;display:flex;gap:4px;z-index:2;pointer-events:none;
   }
@@ -205,7 +205,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v9.7</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v9.8</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 

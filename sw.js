@@ -1,4 +1,4 @@
-const CACHE = 'portravel-reels-v9-7';
+const CACHE = 'portravel-reels-v9-8';
 const APP = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
