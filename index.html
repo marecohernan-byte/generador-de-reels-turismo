@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v10.5</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v10.6</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -621,14 +621,16 @@
   let audioBuffer = null;
   let previewAudio = null;
 
+  const FUENTE_DEF = "'Archivo Expanded','Archivo',sans-serif";
   const els = {
-    titulo:  { x:0.5, y:0.13, size:110, color:'#FFFFFF', rot:0 },
-    precio:  { x:0.5, y:0.76, size:104, color:'#FFFFFF', rot:0 },
-    detalle: { x:0.5, y:0.83, size:40,  color:'#FFFFFF', rot:0 },
-    cta:     { x:0.5, y:0.63, size:52,  color:'#FFFFFF', rot:0 },
-    caption: { x:0.5, y:0.42, size:76,  color:'#FFFFFF', rot:0 },
+    titulo:  { x:0.5, y:0.13, size:110, color:'#FFFFFF', rot:0, font:'' },
+    precio:  { x:0.5, y:0.76, size:104, color:'#FFFFFF', rot:0, font:'' },
+    detalle: { x:0.5, y:0.83, size:40,  color:'#FFFFFF', rot:0, font:'' },
+    cta:     { x:0.5, y:0.63, size:52,  color:'#FFFFFF', rot:0, font:'' },
+    caption: { x:0.5, y:0.42, size:76,  color:'#FFFFFF', rot:0, font:'' },
     logo:    { x:0.5, y:0.95, scale:1.0, alpha:0.85, rot:0 },
   };
+  function famDe(key){ return (els[key] && els[key].font) ? els[key].font : ($('fuente').value || FUENTE_DEF); }
   const RAD = d => (d || 0) * Math.PI / 180;
   // Peso real disponible por fuente (las que no tienen 900 usan el que sí existe)
   function pesoDe(fam){
@@ -982,6 +984,7 @@
   }
   $('fuente').addEventListener('change', () => {
     fuentePreviaReal = null;  // la elección queda firme
+    if (['titulo','precio','detalle','cta','caption'].includes(curEl)) els[curEl].font = $('fuente').value;
     reflejarFuenteSelect();
     asegurarFuente($('fuente').value);
     drawFrameStatic();
@@ -994,6 +997,7 @@
     if (i >= sel.options.length) i = 0;
     sel.selectedIndex = i;
     fuentePreviaReal = null;
+    if (['titulo','precio','detalle','cta','caption'].includes(curEl)) els[curEl].font = sel.value;
     reflejarFuenteSelect();
     asegurarFuente(sel.value);
     drawFrameStatic();
@@ -1035,7 +1039,11 @@
       $('elSizeVal').textContent = els[curEl].size;
       $('elRot').value = els[curEl].rot || 0;
       $('elRotVal').textContent = els[curEl].rot || 0;
-      $('fuenteRow').style.display = ['titulo','precio','caption'].includes(curEl) ? 'grid' : 'none';
+      if (['titulo','precio','detalle','cta','caption'].includes(curEl)){
+        $('fuente').value = els[curEl].font || FUENTE_DEF;
+        reflejarFuenteSelect();
+      }
+      $('fuenteRow').style.display = ['titulo','precio','detalle','cta','caption'].includes(curEl) ? 'grid' : 'none';
       $('estiloPrecioWrap').style.display = curEl === 'precio' ? 'block' : 'none';
       $('pulsoWrap').style.display = curEl === 'precio' ? 'flex' : 'none';
     }
@@ -1634,7 +1642,8 @@
     maybeHighlight('logo');
   }
 
-  function drawPrecio(fam, tGlobal, localAnim){
+  function drawPrecio(famArg, tGlobal, localAnim){
+    const fam = famDe('precio');
     const W = cv.width, H = cv.height;
     const precio = $('precio').value.trim();
     if (!precio){ delete hitboxes.precio; delete hitboxes.detalle; return false; }
@@ -1713,7 +1722,8 @@
       ctx.rotate(RAD(D.rot));
       const anD = animA(localAnim, 0.2);
       ctx.translate(0, anD.dy); ctx.scale(anD.sc, anD.sc); ctx.globalAlpha *= anD.al;
-      ctx.font = `600 ${D.size}px 'Archivo',sans-serif`;
+      const famDet = famDe('detalle');
+      ctx.font = `600 ${D.size}px ${famDet}`;
       ctx.fillStyle = D.color;
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10;
       ctx.fillText(detalle, 0, D.size * 0.34);
@@ -1829,9 +1839,10 @@
       ctx.translate(0, anT.dy); ctx.scale(anT.sc, anT.sc); ctx.globalAlpha *= anT.al;
       ctx.textAlign = 'center'; ctx.fillStyle = T.color;
       ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18;
-      const pwT = pesoDe(fam);
-      const size = fitSize(titulo.toUpperCase(), W * 0.9, T.size, pwT, fam);
-      ctx.font = `${pwT} ${size}px ${fam}`;
+      const famT = famDe('titulo');
+      const pwT = pesoDe(famT);
+      const size = fitSize(titulo.toUpperCase(), W * 0.9, T.size, pwT, famT);
+      ctx.font = `${pwT} ${size}px ${famT}`;
       ctx.fillText(titulo.toUpperCase(), 0, size * 0.34);
       ctx.shadowBlur = 0;
       ctx.fillStyle = accent();
@@ -1846,13 +1857,15 @@
     const cap = media[slideIndex] && media[slideIndex].caption ? media[slideIndex].caption.trim() : '';
     if (cap){
       const C = els.caption;
-      const size = fitSize(cap, W * 0.88, C.size, 700, fam);
+      const famCap = famDe('caption');
+      const pwC = pesoDe(famCap);
+      const size = fitSize(cap, W * 0.88, C.size, pwC, famCap);
       ctx.save();
       ctx.translate(C.x * W, C.y * H);
       ctx.rotate(RAD(C.rot));
       const anC = animA(localAnim, 0.05);
       ctx.translate(0, anC.dy); ctx.scale(anC.sc, anC.sc); ctx.globalAlpha *= anC.al;
-      ctx.font = `700 ${size}px ${fam}`;
+      ctx.font = `${pwC} ${size}px ${famCap}`;
       ctx.textAlign = 'center';
       ctx.fillStyle = C.color;
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 16;
@@ -1873,7 +1886,8 @@
       ctx.rotate(RAD(C.rot));
       const anA2 = animA(localAnim, 0.1);
       ctx.translate(0, anA2.dy); ctx.scale(anA2.sc, anA2.sc); ctx.globalAlpha *= anA2.al;
-      ctx.font = `700 ${C.size}px 'Archivo',sans-serif`;
+      const famCta = famDe('cta');
+      ctx.font = `${pesoDe(famCta)} ${C.size}px ${famCta}`;
       ctx.fillStyle = C.color; ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 12;
       ctx.fillText(cta, 0, C.size * 0.34);
