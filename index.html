@@ -203,7 +203,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v9.1</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v9.2</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -884,14 +884,20 @@
     if (!q){ fotoEstado('Describí la foto que querés generar.', true); return; }
     fotoEstado('Generando imagen con IA… puede tardar unos segundos.');
     try {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=' + encodeURIComponent(key), {
+      const modelos = ['gemini-3.1-flash-image-preview', 'gemini-2.5-flash-image'];
+      let r = null;
+      for (const mod of modelos){
+        r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + mod + ':generateContent?key=' + encodeURIComponent(key), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: 'Genera una foto vertical 9:16, fotorrealista y luminosa, para promoción turística profesional: ' + q + '. Sin texto ni marcas de agua.' }] }],
           generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
         })
-      });
+        });
+        if (r.ok) break;
+        if (r.status !== 404 && r.status !== 400) break;
+      }
       const data = await r.json();
       const partes = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
       const imgPart = partes.find(p => p.inlineData && p.inlineData.data);
