@@ -207,7 +207,7 @@
 <body>
 
 <header>
-  <h1>Generador de <span>Reels</span> <span class="ver">v11.5</span></h1>
+  <h1>Generador de <span>Reels</span> <span class="ver">v11.7</span></h1>
   <span class="hint">Fotos y videos → reel 9:16 listo para Instagram</span>
 </header>
 
@@ -553,9 +553,13 @@
               <label for="filtro">Filtro de color (fotos y videos)</label>
               <select id="filtro">
                 <option value="ninguno" selected>Sin filtro</option>
+                <option value="auto">✨ Auto-mejora (recomendado)</option>
                 <option value="calido">Cálido (playa)</option>
                 <option value="frio">Frío</option>
                 <option value="vibrante">Vibrante</option>
+                <option value="cine">Cinematográfico</option>
+                <option value="dorado">Hora dorada</option>
+                <option value="nitido">Nítido y claro</option>
                 <option value="vintage">Vintage</option>
                 <option value="bn">Blanco y negro</option>
               </select>
@@ -571,6 +575,24 @@
             </div>
           </div>
           <button class="btn-small" id="accentReset" style="margin-top:12px">Volver al color de la marca</button>
+
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+            <label style="font-weight:700;color:var(--turquesa)">Ajustes finos de imagen</label>
+            <p class="font-note" style="margin:4px 0 10px">Se aplican a todas las fotos y videos por igual, para un look uniforme y profesional.</p>
+            <label>Brillo: <span id="ajBrilloVal">0</span></label>
+            <input type="range" id="ajBrillo" min="-50" max="50" value="0">
+            <label>Contraste: <span id="ajContrasteVal">0</span></label>
+            <input type="range" id="ajContraste" min="-50" max="50" value="0">
+            <label>Saturación: <span id="ajSatVal">0</span></label>
+            <input type="range" id="ajSat" min="-50" max="50" value="0">
+            <label>Temperatura (frío ↔ cálido): <span id="ajTempVal">0</span></label>
+            <input type="range" id="ajTemp" min="-50" max="50" value="0">
+            <label>Nitidez: <span id="ajNitidezVal">0</span></label>
+            <input type="range" id="ajNitidez" min="0" max="100" value="0">
+            <label>Viñeta (bordes oscuros): <span id="ajVinetaVal">0</span></label>
+            <input type="range" id="ajVineta" min="0" max="100" value="0">
+            <button class="btn-small" id="ajReset" style="margin-top:10px">Resetear ajustes</button>
+          </div>
         </div>
       </div>
     </div>
@@ -588,6 +610,25 @@
         <input type="range" id="vol" min="0" max="100" value="80">
       </div>
       <p class="font-note" style="margin-top:10px">Ojo con el copyright: para reels suele convenir exportar sin música y agregarla desde la biblioteca de Instagram (mejor alcance y sin riesgo de silenciado). La música subida acá sirve para tendencias propias o pistas con licencia.</p>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+        <label style="font-weight:700;color:var(--turquesa)">🎤 Voz en off</label>
+        <p class="font-note" style="margin:4px 0 10px">Grabá tu voz narrando el reel. Se mezcla con la música y queda en el video exportado.</p>
+        <div class="music-row">
+          <button class="btn-small" id="btnGrabarVoz">🎤 Grabar voz</button>
+          <button class="btn-small danger" id="btnPararVoz" style="display:none">⏹ Detener</button>
+          <span id="vozEstado" class="font-note"></span>
+        </div>
+        <div id="vozPlayWrap" style="display:none;margin-top:10px">
+          <audio id="vozAudio" controls style="width:100%"></audio>
+          <div class="music-row" style="margin-top:8px">
+            <button class="btn-small danger" id="vozDel">Borrar voz</button>
+          </div>
+          <label style="margin-top:8px">Volumen de la voz: <span id="vozVolVal">100</span>%</label>
+          <input type="range" id="vozVol" min="0" max="100" value="100">
+          <label class="check" style="margin-top:8px"><input type="checkbox" id="bajarMusica" checked> Bajar la música cuando hay voz</label>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
@@ -702,6 +743,9 @@
   let customFontCount = 0;
   let accentCustom = false;
   let audioBuffer = null;
+  let vozBuffer = null;      // AudioBuffer de la voz grabada
+  let vozPreviewAudio = null;
+  let vozRecorder = null, vozChunks = [], vozStream = null;
   let previewAudio = null;
 
   const FUENTE_DEF = "'Archivo Expanded','Archivo',sans-serif";
@@ -1202,6 +1246,19 @@
   $('accentReset').onclick = () => { accentCustom = false; $('accentColor').value = BRAND_ACCENT[brand]; drawFrameStatic(); };
   $('shade').addEventListener('input', () => { $('shadeVal').textContent = $('shade').value; drawFrameStatic(); });
   $('filtro').addEventListener('change', drawFrameStatic);
+  // Ajustes finos de imagen
+  const AJUSTES_IDS = [['ajBrillo','ajBrilloVal'],['ajContraste','ajContrasteVal'],['ajSat','ajSatVal'],['ajTemp','ajTempVal'],['ajNitidez','ajNitidezVal'],['ajVineta','ajVinetaVal']];
+  AJUSTES_IDS.forEach(([id, lbl]) => {
+    $(id).addEventListener('input', () => { $(lbl).textContent = $(id).value; drawFrameStatic(); });
+  });
+  $('ajReset').onclick = () => {
+    AJUSTES_IDS.forEach(([id, lbl]) => {
+      $(id).value = (id === 'ajNitidez' || id === 'ajVineta') ? 0 : 0;
+      $(lbl).textContent = '0';
+    });
+    drawFrameStatic();
+    setStatus('Ajustes de imagen reseteados.', 'ok');
+  };
   $('animTexto').addEventListener('change', () => reproducirMuestra());
 
   // ---------- Plantillas ----------
@@ -1220,6 +1277,11 @@
       transicion: $('transicion').value,
       efectoFoto: $('efectoFoto').value,
       filtro: $('filtro').value,
+      ajustes: {
+        brillo: +$('ajBrillo').value, contraste: +$('ajContraste').value,
+        sat: +$('ajSat').value, temp: +$('ajTemp').value,
+        nitidez: +$('ajNitidez').value, vineta: +$('ajVineta').value
+      },
       animTexto: $('animTexto').value,
       textos: {
         titulo: $('titulo').value, precio: $('precio').value,
@@ -1256,6 +1318,13 @@
       if (s.transicion) $('transicion').value = s.transicion;
       if (s.efectoFoto) $('efectoFoto').value = s.efectoFoto;
       if (s.filtro) $('filtro').value = s.filtro;
+      if (s.ajustes){
+        const aj = s.ajustes;
+        const map = {ajBrillo:'brillo',ajContraste:'contraste',ajSat:'sat',ajTemp:'temp',ajNitidez:'nitidez',ajVineta:'vineta'};
+        Object.entries(map).forEach(([id,key]) => {
+          if (aj[key] != null){ $(id).value = aj[key]; const lbl = id+'Val'; if ($(lbl)) $(lbl).textContent = aj[key]; }
+        });
+      }
       if (s.animTexto) $('animTexto').value = s.animTexto;
       if (s.textos){
         ['titulo','precio','precioAnt','detalle','cta'].forEach(k => { if (s.textos[k] != null) $(k).value = s.textos[k]; });
@@ -1496,6 +1565,64 @@
   $('vol').addEventListener('input', () => {
     $('volVal').textContent = $('vol').value;
     if (previewAudio) previewAudio.volume = parseInt($('vol').value) / 100;
+  });
+
+  // ---------- Voz en off ----------
+  $('btnGrabarVoz').onclick = async () => {
+    try {
+      vozStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch(e){
+      setStatus('No se pudo acceder al micrófono. Revisá los permisos del navegador.', 'err');
+      return;
+    }
+    vozChunks = [];
+    let mime = 'audio/webm';
+    if (!MediaRecorder.isTypeSupported(mime)) mime = '';
+    vozRecorder = new MediaRecorder(vozStream, mime ? { mimeType: mime } : undefined);
+    vozRecorder.ondataavailable = e => { if (e.data.size) vozChunks.push(e.data); };
+    vozRecorder.onstop = async () => {
+      const blob = new Blob(vozChunks, { type: 'audio/webm' });
+      // decodificar para mezclar en la exportación
+      try {
+        const buf = await blob.arrayBuffer();
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        vozBuffer = await actx.decodeAudioData(buf);
+        actx.close();
+      } catch(e){ vozBuffer = null; }
+      // preview reproducible
+      const url = URL.createObjectURL(blob);
+      $('vozAudio').src = url;
+      if (vozPreviewAudio){ vozPreviewAudio.pause(); }
+      vozPreviewAudio = new Audio(url);
+      $('vozPlayWrap').style.display = 'block';
+      $('vozEstado').textContent = '✓ Voz grabada';
+      // cerrar micrófono
+      if (vozStream){ vozStream.getTracks().forEach(t => t.stop()); vozStream = null; }
+      setStatus('Voz grabada: se incluirá en el video exportado.', 'ok');
+    };
+    vozRecorder.start();
+    $('btnGrabarVoz').style.display = 'none';
+    $('btnPararVoz').style.display = 'inline-block';
+    $('vozEstado').textContent = '● Grabando...';
+    // si hay reproducción del reel, arrancarla para narrar sincronizado
+    setStatus('Grabando voz. Dale play al reel (▶) si querés narrar sobre las imágenes.', 'ok');
+  };
+  $('btnPararVoz').onclick = () => {
+    if (vozRecorder && vozRecorder.state !== 'inactive') vozRecorder.stop();
+    $('btnGrabarVoz').style.display = 'inline-block';
+    $('btnPararVoz').style.display = 'none';
+  };
+  $('vozDel').onclick = () => {
+    vozBuffer = null;
+    if (vozPreviewAudio){ vozPreviewAudio.pause(); vozPreviewAudio = null; }
+    $('vozAudio').src = '';
+    $('vozPlayWrap').style.display = 'none';
+    $('vozEstado').textContent = '';
+    setStatus('Voz borrada.', 'ok');
+  };
+  $('vozVol').addEventListener('input', () => {
+    $('vozVolVal').textContent = $('vozVol').value;
+    if (vozPreviewAudio) vozPreviewAudio.volume = parseInt($('vozVol').value) / 100;
   });
 
   // ---------- Fuente propia ----------
@@ -2275,38 +2402,109 @@
       drawCover(media[i], 1.0, 0, 0, offX, offY);
     }
   }
-  // Aplica el filtro de color procesando los píxeles del canvas YA dibujado.
-  // Funciona igual para fotos y videos. Se llama una vez por cuadro, al final del fondo.
+  // Cada preset define ajustes base; los sliders se suman encima.
+  // brillo/contraste/sat/temp: -50..50  |  nitidez/vineta: 0..100
+  const PRESET_AJUSTES = {
+    ninguno:  { b:0,  c:0,  s:0,  t:0,  bn:false, sepia:0 },
+    auto:     { b:4,  c:14, s:12, t:3,  bn:false, sepia:0 },
+    calido:   { b:3,  c:8,  s:10, t:22, bn:false, sepia:0 },
+    frio:     { b:2,  c:8,  s:6,  t:-22,bn:false, sepia:0 },
+    vibrante: { b:2,  c:12, s:35, t:4,  bn:false, sepia:0 },
+    cine:     { b:-4, c:22, s:-8, t:-6, bn:false, sepia:0 },
+    dorado:   { b:6,  c:10, s:16, t:32, bn:false, sepia:8 },
+    nitido:   { b:5,  c:16, s:6,  t:0,  bn:false, sepia:0 },
+    vintage:  { b:4,  c:-6, s:-18,t:14, bn:false, sepia:35 },
+    bn:       { b:2,  c:14, s:0,  t:0,  bn:true,  sepia:0 }
+  };
+  function leerAjustes(){
+    const preset = PRESET_AJUSTES[$('filtro').value] || PRESET_AJUSTES.ninguno;
+    return {
+      brillo:    preset.b + (+$('ajBrillo').value),
+      contraste: preset.c + (+$('ajContraste').value),
+      sat:       preset.s + (+$('ajSat').value),
+      temp:      preset.t + (+$('ajTemp').value),
+      nitidez:   +$('ajNitidez').value,
+      vineta:    +$('ajVineta').value,
+      bn:        preset.bn,
+      sepia:     preset.sepia
+    };
+  }
+  function hayAjustes(a){
+    return a.brillo||a.contraste||a.sat||a.temp||a.nitidez||a.vineta||a.bn||a.sepia;
+  }
+  // Aplica color + ajustes finos procesando los píxeles del canvas YA dibujado (foto y video).
   function aplicarFiltroPixeles(){
-    const tipo = $('filtro').value;
-    if (!tipo || tipo === 'ninguno') return;
+    const a = leerAjustes();
+    if (!hayAjustes(a)) return;
     const W = cv.width, H = cv.height;
     let img;
     try { img = ctx.getImageData(0, 0, W, H); } catch(e){ return; }
     const d = img.data;
+    const bAdd = a.brillo * 2.0;                       // brillo
+    const cF = (259 * (a.contraste + 255)) / (255 * (259 - a.contraste*1.0)); // contraste
+    const cFac = 1 + a.contraste / 50 * 0.6;
+    const sFac = 1 + a.sat / 50;                        // saturación
+    const tR = a.temp * 0.6, tB = -a.temp * 0.6;        // temperatura
     for (let k = 0; k < d.length; k += 4){
       let r = d[k], g = d[k+1], b = d[k+2];
-      if (tipo === 'bn'){
+      // brillo
+      r += bAdd; g += bAdd; b += bAdd;
+      // temperatura
+      r += tR; b += tB;
+      // contraste (alrededor de 128)
+      r = (r - 128) * cFac + 128;
+      g = (g - 128) * cFac + 128;
+      b = (b - 128) * cFac + 128;
+      // saturación
+      const gray = 0.299*r + 0.587*g + 0.114*b;
+      r = gray + (r - gray) * sFac;
+      g = gray + (g - gray) * sFac;
+      b = gray + (b - gray) * sFac;
+      // sepia (para vintage/dorado)
+      if (a.sepia){
         const y = 0.299*r + 0.587*g + 0.114*b;
-        r = g = b = y;
-      } else if (tipo === 'calido'){
-        r = Math.min(255, r*1.08 + 12); g = Math.min(255, g*1.02 + 4); b = b*0.92;
-      } else if (tipo === 'frio'){
-        r = r*0.92; g = Math.min(255, g*1.0 + 2); b = Math.min(255, b*1.10 + 12);
-      } else if (tipo === 'vibrante'){
-        const avg = (r+g+b)/3;
-        r = Math.min(255, Math.max(0, avg + (r-avg)*1.5));
-        g = Math.min(255, Math.max(0, avg + (g-avg)*1.5));
-        b = Math.min(255, Math.max(0, avg + (b-avg)*1.5));
-      } else if (tipo === 'vintage'){
-        const y = 0.299*r + 0.587*g + 0.114*b;
-        r = Math.min(255, y*0.4 + r*0.6 + 30);
-        g = Math.min(255, y*0.4 + g*0.6 + 15);
-        b = Math.min(255, y*0.4 + b*0.6);
+        const m = a.sepia / 100;
+        r = r*(1-m) + Math.min(255, y*1.07)*m;
+        g = g*(1-m) + Math.min(255, y*0.74)*m;
+        b = b*(1-m) + y*0.43*m;
       }
-      d[k] = r; d[k+1] = g; d[k+2] = b;
+      // blanco y negro
+      if (a.bn){ const y = 0.299*r + 0.587*g + 0.114*b; r = g = b = y; }
+      d[k]   = r < 0 ? 0 : r > 255 ? 255 : r;
+      d[k+1] = g < 0 ? 0 : g > 255 ? 255 : g;
+      d[k+2] = b < 0 ? 0 : b > 255 ? 255 : b;
     }
+    // nitidez: realce simple por máscara de contraste local (solo si se pide)
+    if (a.nitidez > 0) aplicarNitidez(d, W, H, a.nitidez / 100);
     ctx.putImageData(img, 0, 0);
+    // viñeta: se dibuja encima, no por píxel
+    if (a.vineta > 0) dibujarVineta(a.vineta / 100);
+  }
+  function aplicarNitidez(d, W, H, fuerza){
+    // unsharp mask liviano: compara cada píxel con el de la derecha y abajo
+    const orig = new Uint8ClampedArray(d);
+    const amt = fuerza * 0.8;
+    for (let y = 1; y < H-1; y++){
+      for (let x = 1; x < W-1; x++){
+        const i = (y*W + x) * 4;
+        for (let c = 0; c < 3; c++){
+          const center = orig[i+c];
+          const around = (orig[i+c-4] + orig[i+c+4] + orig[i+c-W*4] + orig[i+c+W*4]) / 4;
+          const val = center + (center - around) * amt;
+          d[i+c] = val < 0 ? 0 : val > 255 ? 255 : val;
+        }
+      }
+    }
+  }
+  function dibujarVineta(fuerza){
+    const W = cv.width, H = cv.height;
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35, W/2, H/2, Math.max(W,H)*0.72);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(0,0,0,${0.6 * fuerza})`);
+    ctx.save();
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
 
   function syncVideo(m, localT, shouldPlay){
@@ -2618,19 +2816,35 @@
     const BITRATES = { 1080: 16_000_000, 1440: 28_000_000, 2160: 50_000_000 };
     const bitrate = BITRATES[parseInt($('calidad').value)] || 16_000_000;
 
-    // Música → pista de audio en el stream
-    let actx = null, srcNode = null;
-    if (audioBuffer){
+    // Audio → música + voz en off, mezcladas en un mismo destino
+    let actx = null, srcNode = null, vozNode = null;
+    if (audioBuffer || vozBuffer){
       actx = new (window.AudioContext || window.webkitAudioContext)();
-      srcNode = actx.createBufferSource();
-      srcNode.buffer = audioBuffer;
-      srcNode.loop = true;
-      const gain = actx.createGain();
-      gain.gain.value = parseInt($('vol').value) / 100;
       const dest = actx.createMediaStreamDestination();
-      srcNode.connect(gain); gain.connect(dest);
+      // música (en loop)
+      if (audioBuffer){
+        srcNode = actx.createBufferSource();
+        srcNode.buffer = audioBuffer;
+        srcNode.loop = true;
+        const gMus = actx.createGain();
+        let volMus = parseInt($('vol').value) / 100;
+        // si hay voz y está activado "bajar música", atenuar la música
+        if (vozBuffer && $('bajarMusica').checked) volMus *= 0.35;
+        gMus.gain.value = volMus;
+        srcNode.connect(gMus); gMus.connect(dest);
+      }
+      // voz (una sola vez, desde el inicio)
+      if (vozBuffer){
+        vozNode = actx.createBufferSource();
+        vozNode.buffer = vozBuffer;
+        vozNode.loop = false;
+        const gVoz = actx.createGain();
+        gVoz.gain.value = parseInt($('vozVol').value) / 100;
+        vozNode.connect(gVoz); gVoz.connect(dest);
+      }
       dest.stream.getAudioTracks().forEach(tr => stream.addTrack(tr));
-      srcNode.start();
+      if (srcNode) srcNode.start();
+      if (vozNode) vozNode.start();
     }
 
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bitrate });
@@ -2656,6 +2870,7 @@
     await done;
     stopAllVideos();
     if (srcNode){ try{ srcNode.stop(); }catch(e){} }
+    if (vozNode){ try{ vozNode.stop(); }catch(e){} }
     if (actx){ actx.close(); }
 
     const blob = new Blob(chunks, { type: mime.split(';')[0] });
